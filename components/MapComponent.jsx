@@ -324,7 +324,7 @@ export default function MapComponent () {
     //   })
 
     const graph = buildGraph(wareHouseLocations)
-    const path = Astar(graph, 0, 5, wareHouseLocations)
+    const path = Astar(graph, 0, 13, wareHouseLocations)
     displayAStarPath(map, graph, path, wareHouseLocations)
     console.log(path)
   }
