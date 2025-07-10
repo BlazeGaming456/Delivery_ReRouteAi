@@ -4,7 +4,7 @@ export async function POST(request) {
     console.log("Origin:", origin);
     console.log("Destination:", destination);
 
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!apiKey) throw new Error("Missing Google Maps API Key");
 
     const url = `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${origin.lat},${origin.lng}&destinations=${destination.lat},${destination.lng}&key=${apiKey}`;
