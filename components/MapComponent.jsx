@@ -5,7 +5,11 @@ import Astar from './Astar'
 import buildGraph from './buildGraph'
 import getDistance from './StraightDistance'
 
-export default function MapComponent () {
+export default function MapComponent ({
+  userAddress,
+  userCoords,
+  selectedItem: selectedItemProp
+}) {
   const [markers, setMarkers] = useState([])
   const [map, setMap] = useState(null)
   const [oriDest, setOriDest] = useState(null)
@@ -24,7 +28,8 @@ export default function MapComponent () {
   const [rerouteLatLng, setRerouteLatLng] = useState(null)
   const [isPaused, setIsPaused] = useState(false)
   const [animationInterval, setAnimationInterval] = useState(null)
-  const [selectedItem, setSelectedItem] = useState('item1')
+  // If selectedItemProp is provided, use it as the selected item
+  const [selectedItem, setSelectedItem] = useState(selectedItemProp || 'item1')
 
   //Warehouse Locations
   const wareHouseLocations = [
@@ -365,7 +370,13 @@ export default function MapComponent () {
   }, [])
 
   useEffect(() => {
-    window.initMap = initMap
+    if (
+      typeof window !== 'undefined' &&
+      window.google &&
+      document.getElementById('map')
+    ) {
+      initMap()
+    }
   }, [])
 
   // Define initMap on window so Google Maps can call it
@@ -649,95 +660,146 @@ export default function MapComponent () {
     }
   }, [oriDest, map])
 
+  // If userCoords is provided, trigger delivery logic on mount
+  useEffect(() => {
+    if (userCoords && selectedItemProp) {
+      // Find the nearest warehouse to the user (end)
+      let minDistEnd = Infinity
+      let nearestToUser = null
+      wareHouseLocations.forEach(warehouse => {
+        const [lat, lng] = warehouse.coordinates
+        const dist = Math.sqrt(
+          (userCoords.lat - lat) ** 2 + (userCoords.lng - lng) ** 2
+        )
+        if (dist < minDistEnd) {
+          minDistEnd = dist
+          nearestToUser = warehouse
+        }
+      })
+      // Find the nearest warehouse to the user that contains the item (start)
+      let minDistStart = Infinity
+      let nearestWithItem = null
+      wareHouseLocations.forEach(warehouse => {
+        if (
+          warehouse.inventory &&
+          warehouse.inventory.includes(selectedItemProp)
+        ) {
+          const [lat, lng] = warehouse.coordinates
+          const dist = Math.sqrt(
+            (userCoords.lat - lat) ** 2 + (userCoords.lng - lng) ** 2
+          )
+          if (dist < minDistStart) {
+            minDistStart = dist
+            nearestWithItem = warehouse
+          }
+        }
+      })
+      if (!nearestWithItem) {
+        window.alert(`No warehouse found with ${selectedItemProp}.`)
+        return
+      }
+      // Route from nearestWithItem to nearestToUser
+      setOriDest({
+        startWarehouse: nearestWithItem,
+        endWarehouse: nearestToUser
+      })
+    }
+  }, [userCoords, selectedItemProp])
+
+  // Hide search bar and item dropdown if props are provided
+  const showSearchAndDropdown = !(userCoords && selectedItemProp)
+
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gray-100 py-8'>
-      <div className='w-full max-w-2xl bg-white rounded-2xl shadow-xl p-6'>
-        <h1 className='text-2xl font-bold text-center mb-6 font-mono text-blue-700 tracking-wide'>
-          Delivery Route Simulator
-        </h1>
-        {/* Input fields group */}
-        <div className='mb-4 flex flex-col md:flex-row items-center justify-center gap-4'>
-          <label htmlFor='item-select' className='font-semibold text-gray-700'>
-            Select Item:
-          </label>
-          <select
-            id='item-select'
-            value={selectedItem}
-            onChange={e => setSelectedItem(e.target.value)}
-            className='px-4 py-2 border rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-400 transition'
-          >
-            {Array.from({ length: 10 }, (_, i) => `item${i + 1}`).map(item => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className='flex flex-col md:flex-row gap-4 mb-4 items-center justify-center bg-gray-50 p-4 rounded-lg shadow-sm'>
-          <input
-            id='search-box'
-            type='text'
-            placeholder='Search for a place...'
-            className='w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-400 transition'
-          />
-          {/* Reroute input and button */}
-          <div className='flex items-center gap-2 w-full md:w-1/2'>
-            <input
-              type='text'
-              ref={rerouteInputRef}
-              value={rerouteInput}
-              onChange={e => setRerouteInput(e.target.value)}
-              placeholder='Enter reroute destination...'
-              className='w-full px-4 py-2 border rounded shadow focus:outline-none focus:ring-2 focus:ring-orange-400 transition'
-              disabled={progress >= 90}
-            />
-            <button
-              className='px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition'
-              disabled={progress >= 90}
-              onClick={handleReroutePreview}
-            >
-              Reroute
-            </button>
-            {showAcceptReroute && (
-              <>
-                <button
-                  className='px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 ml-2 transition'
-                  onClick={handleAcceptReroute}
-                >
-                  Accept Reroute
-                </button>
-                <button
-                  className='px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 ml-2 transition'
-                  onClick={handleCancelReroute}
-                  title='Cancel reroute'
-                >
-                  ✕
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-        {/* Map Container */}
-        <div
-          id='map'
-          className='w-full border-2 border-blue-200 rounded-xl shadow-lg mb-6'
-          style={{
-            height: '400px',
-            minWidth: '100%',
-            borderRadius: '16px'
-          }}
-        ></div>
-        {/* Progress Bar */}
-        <div className='w-full bg-gray-200 h-3 rounded-full mt-2'>
-          <div
-            className='bg-green-600 h-3 rounded-full transition-all duration-500'
-            style={{ width: `${progress}%` }}
-          ></div>
-        </div>
-        <p className='text-xs text-gray-700 mt-1 text-center'>
-          Delivery Progress: {Math.floor(progress)}%
-        </p>
+    <div className='w-full'>
+      <h1 className='text-2xl font-bold text-center mb-6 font-mono text-blue-700 tracking-wide'>
+        Delivery Route Simulator
+      </h1>
+      {/* Input fields group */}
+      <div className='mb-4 flex flex-col md:flex-row items-center justify-center gap-4'>
+        <label htmlFor='item-select' className='font-semibold text-gray-700'>
+          Select Item:
+        </label>
+        <select
+          id='item-select'
+          value={selectedItem}
+          onChange={e => setSelectedItem(e.target.value)}
+          className='px-4 py-2 border rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-400 transition'
+        >
+          {Array.from({ length: 10 }, (_, i) => `item${i + 1}`).map(item => (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          ))}
+        </select>
       </div>
+      {showSearchAndDropdown && (
+        <>
+          <div className='flex flex-col md:flex-row gap-4 mb-4 items-center justify-center bg-gray-50 p-4 rounded-lg shadow-sm'>
+            <input
+              id='search-box'
+              type='text'
+              placeholder='Search for a place...'
+              className='w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-400 transition'
+            />
+            {/* Reroute input and button */}
+            <div className='flex items-center gap-2 w-full md:w-1/2'>
+              <input
+                type='text'
+                ref={rerouteInputRef}
+                value={rerouteInput}
+                onChange={e => setRerouteInput(e.target.value)}
+                placeholder='Enter reroute destination...'
+                className='w-full px-4 py-2 border rounded shadow focus:outline-none focus:ring-2 focus:ring-orange-400 transition'
+                disabled={progress >= 90}
+              />
+              <button
+                className='px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition'
+                disabled={progress >= 90}
+                onClick={handleReroutePreview}
+              >
+                Reroute
+              </button>
+              {showAcceptReroute && (
+                <>
+                  <button
+                    className='px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 ml-2 transition'
+                    onClick={handleAcceptReroute}
+                  >
+                    Accept Reroute
+                  </button>
+                  <button
+                    className='px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 ml-2 transition'
+                    onClick={handleCancelReroute}
+                    title='Cancel reroute'
+                  >
+                    ✕
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+      {/* Map Container */}
+      <div
+        id='map'
+        className='w-full border-2 border-blue-200 rounded-xl shadow-lg mb-6'
+        style={{
+          height: '400px',
+          minWidth: '100%',
+          borderRadius: '16px'
+        }}
+      ></div>
+      {/* Progress Bar */}
+      <div className='w-full bg-gray-200 h-3 rounded-full mt-2'>
+        <div
+          className='bg-green-600 h-3 rounded-full transition-all duration-500'
+          style={{ width: `${progress}%` }}
+        ></div>
+      </div>
+      <p className='text-xs text-gray-700 mt-1 text-center'>
+        Delivery Progress: {Math.floor(progress)}%
+      </p>
     </div>
   )
 }
