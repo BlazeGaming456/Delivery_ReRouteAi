@@ -226,6 +226,7 @@ export default function MapComponent ({
     // 2. Determine reroute start warehouse index
     const segment = Math.floor(truckPathIndex / 4)
     const atWarehouse = truckPathIndex % 4 === 0
+    // Always use the next warehouse if not at a warehouse
     const rerouteStartIdx = atWarehouse ? segment : segment + 1
 
     // 3. Check if the new destination is already in the remaining path
@@ -1248,11 +1249,6 @@ export default function MapComponent ({
             })}
           </div>
         )}
-      {showAcceptReroute && reroutePreviewLabel && (
-        <div className='flex flex-wrap items-center justify-center mb-4 p-2 bg-orange-50 rounded-xl shadow text-orange-800 font-mono text-lg border border-orange-300'>
-          <span className='flex items-center'>{reroutePreviewLabel}</span>
-        </div>
-      )}
       {currentAStarPath && currentAStarPath.length > 1 && (
         <div className='mb-2 flex flex-col items-center justify-center'>
           <div className='bg-blue-100 rounded-lg px-4 py-2 shadow text-blue-900 font-mono text-base'>
