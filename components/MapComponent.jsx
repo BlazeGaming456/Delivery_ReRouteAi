@@ -30,6 +30,7 @@ export default function MapComponent ({
   const [animationInterval, setAnimationInterval] = useState(null)
   // If selectedItemProp is provided, use it as the selected item
   const [selectedItem, setSelectedItem] = useState(selectedItemProp || 'item1')
+  const [directionsRenderer, setDirectionsRenderer] = useState(null)
 
   //Warehouse Locations
   const wareHouseLocations = [
@@ -308,6 +309,40 @@ export default function MapComponent ({
     setReroutePreviewPath([])
     setShowAcceptReroute(false)
     setIsPaused(false) // Resume animation with new path
+    // Find new start and end warehouse based on reroutePreviewPath
+    if (reroutePreviewPath.length === 2) {
+      // Find nearest warehouse objects for start and end
+      const start = reroutePreviewPath[0]
+      const end = reroutePreviewPath[1]
+      let startWarehouse = null
+      let endWarehouse = null
+      wareHouseLocations.forEach(wh => {
+        if (
+          !startWarehouse &&
+          Math.abs(wh.coordinates[0] - start.lat) < 0.01 &&
+          Math.abs(wh.coordinates[1] - start.lng) < 0.01
+        )
+          startWarehouse = wh
+        if (
+          !endWarehouse &&
+          Math.abs(wh.coordinates[0] - end.lat) < 0.01 &&
+          Math.abs(wh.coordinates[1] - end.lng) < 0.01
+        )
+          endWarehouse = wh
+      })
+      if (startWarehouse && endWarehouse) {
+        setOriDest({ startWarehouse, endWarehouse })
+      } else {
+        // fallback: just use lat/lng
+        setOriDest({
+          startWarehouse: { coordinates: [start.lat, start.lng] },
+          endWarehouse: { coordinates: [end.lat, end.lng] }
+        })
+      }
+    }
+    // Store the last reroute cost details for display in blue box
+    if (rerouteCost) setLastRerouteCost(rerouteCost)
+    else setLastRerouteCost(null)
   }
 
   const handleCancelReroute = () => {
@@ -322,38 +357,9 @@ export default function MapComponent ({
   const [currentStepIndex, setCurrentStepIndex] = useState(0) // Track current step index
 
   // In displayAStarPath, update currentAStarPath
-  const displayAStarPath = (map, graph, path, wareHouseLocations) => {
-    if (!path || path.length === 0) return
-    setCurrentAStarPath(path)
-    const coordinates = path.map(id => ({
-      lat: wareHouseLocations[id].coordinates[0],
-      lng: wareHouseLocations[id].coordinates[1]
-    }))
-
-    const interpolatedPath = []
-
-    for (let i = 0; i < coordinates.length - 1; i++) {
-      const start = coordinates[i]
-      const end = coordinates[i + 1]
-      interpolatedPath.push(start)
-      interpolatedPath.push(...interpolatePoints(start, end, 3)) // 3 points between
-    }
-
-    interpolatedPath.push(coordinates[coordinates.length - 1]) // Final point
-
-    // Draw polyline on map
-    const routePath = new google.maps.Polyline({
-      path: interpolatedPath,
-      geodesic: true,
-      strokeColor: '#FF0000',
-      strokeOpacity: 1.0,
-      strokeWeight: 3
-    })
-
-    routePath.setMap(map)
-
-    setDeliveryPath(interpolatedPath)
-  }
+  // Remove the displayAStarPath function and any calls to it.
+  // Remove any code that creates a google.maps.Polyline with strokeColor: '#FF0000'.
+  // Only keep DirectionsRenderer for the main route and orange Polyline for reroute preview.
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -393,6 +399,29 @@ export default function MapComponent ({
     //Setting the map to the state
     setMap(map)
     displayWarehouses(map)
+
+    //Custom icon for destination marker (user)
+    const destinationIcon = {
+      path: window.google.maps.SymbolPath.CIRCLE,
+      scale: 10,
+      fillColor: '#4285F4', // Blue
+      fillOpacity: 1,
+      strokeWeight: 2,
+      strokeColor: '#ffffff'
+    }
+
+    // Place destination marker if oriDest is set
+    if (oriDest && oriDest.endWarehouse) {
+      new window.google.maps.Marker({
+        position: {
+          lat: oriDest.endWarehouse.coordinates[0],
+          lng: oriDest.endWarehouse.coordinates[1]
+        },
+        map: map,
+        title: 'Destination',
+        icon: destinationIcon
+      })
+    }
 
     //Implementing a search box
     const input = document.getElementById('search-box')
@@ -545,10 +574,33 @@ export default function MapComponent ({
         oriDest.endWarehouse.id,
         wareHouseLocations
       )
-      displayAStarPath(map, graph, path, wareHouseLocations)
+      setCurrentAStarPath(path)
       console.log('A* Path:', path)
     }
   }, [oriDest, map])
+
+  // When currentAStarPath changes, build the full path with 3 interpolated steps per segment, and animate the truck along this path, but do NOT draw a polyline for this path.
+  useEffect(() => {
+    if (!currentAStarPath || currentAStarPath.length < 2) return
+    // Build warehouse coordinates array
+    const warehouseCoords = currentAStarPath.map(idx => ({
+      lat: wareHouseLocations[idx].coordinates[0],
+      lng: wareHouseLocations[idx].coordinates[1]
+    }))
+    // Interpolate 3 steps per segment
+    let animatedPath = []
+    for (let i = 0; i < warehouseCoords.length - 1; i++) {
+      const start = warehouseCoords[i]
+      const end = warehouseCoords[i + 1]
+      animatedPath.push(start)
+      animatedPath.push(...interpolatePoints(start, end, 3))
+    }
+    animatedPath.push(warehouseCoords[warehouseCoords.length - 1])
+    setDeliveryPath(animatedPath)
+    setProgress(0)
+    // Do NOT draw a polyline for this path.
+    if (routePolyline) routePolyline.setMap(null)
+  }, [currentAStarPath])
 
   // Autocomplete for reroute input
   useEffect(() => {
@@ -639,9 +691,16 @@ export default function MapComponent ({
         lng: oriDest.endWarehouse.coordinates[1]
       }
       if (window.google && window.google.maps) {
+        // Remove previous DirectionsRenderer
+        if (directionsRenderer) directionsRenderer.setMap(null)
+        const newDirectionsRenderer = new window.google.maps.DirectionsRenderer(
+          {
+            suppressMarkers: true
+          }
+        )
+        newDirectionsRenderer.setMap(map)
+        setDirectionsRenderer(newDirectionsRenderer)
         const directionsService = new window.google.maps.DirectionsService()
-        const directionsRenderer = new window.google.maps.DirectionsRenderer()
-        directionsRenderer.setMap(map)
         directionsService.route(
           {
             origin,
@@ -650,7 +709,62 @@ export default function MapComponent ({
           },
           (result, status) => {
             if (status === 'OK') {
-              directionsRenderer.setDirections(result)
+              newDirectionsRenderer.setDirections(result)
+              // Use currentAStarPath for animation if available
+              let warehouseCoords = []
+              if (currentAStarPath && currentAStarPath.length > 1) {
+                warehouseCoords = currentAStarPath.map(idx => ({
+                  lat: wareHouseLocations[idx].coordinates[0],
+                  lng: wareHouseLocations[idx].coordinates[1]
+                }))
+              } else if (
+                oriDest &&
+                oriDest.startWarehouse &&
+                oriDest.endWarehouse
+              ) {
+                warehouseCoords.push({
+                  lat: oriDest.startWarehouse.coordinates[0],
+                  lng: oriDest.startWarehouse.coordinates[1]
+                })
+                warehouseCoords.push({
+                  lat: oriDest.endWarehouse.coordinates[0],
+                  lng: oriDest.endWarehouse.coordinates[1]
+                })
+              }
+              // Interpolate 3 steps per segment
+              let animatedPath = []
+              for (let i = 0; i < warehouseCoords.length - 1; i++) {
+                const start = warehouseCoords[i]
+                const end = warehouseCoords[i + 1]
+                animatedPath.push(start)
+                animatedPath.push(...interpolatePoints(start, end, 3))
+              }
+              animatedPath.push(warehouseCoords[warehouseCoords.length - 1])
+              // In the DirectionsRenderer callback (status === 'OK'), remove setDeliveryPath(animatedPath) and setProgress(0). Only add markers, do not touch deliveryPath here.
+              // Add custom start marker (warehouse)
+              new window.google.maps.Marker({
+                position: origin,
+                map: map,
+                title: 'Warehouse',
+                icon: {
+                  url: '/warehouse.png',
+                  scaledSize: new window.google.maps.Size(20, 20)
+                }
+              })
+              // Add custom destination marker (user)
+              new window.google.maps.Marker({
+                position: destination,
+                map: map,
+                title: 'Destination',
+                icon: {
+                  path: window.google.maps.SymbolPath.CIRCLE,
+                  scale: 10,
+                  fillColor: '#4285F4',
+                  fillOpacity: 1,
+                  strokeWeight: 2,
+                  strokeColor: '#ffffff'
+                }
+              })
             } else {
               console.error('Directions request failed due to ' + status)
             }
@@ -706,8 +820,140 @@ export default function MapComponent ({
     }
   }, [userCoords, selectedItemProp])
 
-  // Hide search bar and item dropdown if props are provided
-  const showSearchAndDropdown = !(userCoords && selectedItemProp)
+  // Helper to calculate distance between two points
+  function getDistanceKm (a, b) {
+    const R = 6371
+    const dLat = ((b.lat - a.lat) * Math.PI) / 180
+    const dLng = ((b.lng - a.lng) * Math.PI) / 180
+    const lat1 = (a.lat * Math.PI) / 180
+    const lat2 = (b.lat * Math.PI) / 180
+    const aVal =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
+    const c = 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal))
+    return R * c
+  }
+
+  // Cost calculation for a path (array of warehouse indices)
+  function calculatePathCost (pathIdxArr, warehouseList) {
+    if (!pathIdxArr || pathIdxArr.length < 2)
+      return { distance: 0, warehouseCost: 0, total: 0 }
+    let distance = 0
+    for (let i = 0; i < pathIdxArr.length - 1; i++) {
+      const a = warehouseList[pathIdxArr[i]].coordinates
+      const b = warehouseList[pathIdxArr[i + 1]].coordinates
+      distance += getDistanceKm(
+        { lat: a[0], lng: a[1] },
+        { lat: b[0], lng: b[1] }
+      )
+    }
+    const warehouseCost = pathIdxArr.length * 10
+    const distanceCost = distance * 0.1
+    const total = warehouseCost + distanceCost
+    return { distance, warehouseCost, distanceCost, total }
+  }
+
+  // State for reroute cost
+  const [rerouteCost, setRerouteCost] = useState(null)
+
+  // Add state to track last reroute cost details
+  const [lastRerouteCost, setLastRerouteCost] = useState(null)
+
+  // Calculate and display cost for the current path
+  const originalCost = calculatePathCost(currentAStarPath, wareHouseLocations)
+
+  // Helper to get the index of the truck's current position in the A* path
+  function getCurrentWarehouseIndex () {
+    // Find the closest warehouse index in currentAStarPath to the truck's current position
+    if (
+      !deliveryPath ||
+      deliveryPath.length === 0 ||
+      !currentAStarPath ||
+      currentAStarPath.length === 0
+    )
+      return 0
+    // Find the closest point in deliveryPath to the truckMarker's position
+    let truckPos = null
+    if (truckMarker) {
+      const pos = truckMarker.getPosition()
+      if (pos) truckPos = { lat: pos.lat(), lng: pos.lng() }
+    }
+    // If no marker, assume at start
+    if (!truckPos) return 0
+    // Find the closest warehouse index
+    let minDist = Infinity
+    let closestIdx = 0
+    currentAStarPath.forEach((idx, i) => {
+      const wh = wareHouseLocations[idx]
+      const dist = getDistanceKm(truckPos, {
+        lat: wh.coordinates[0],
+        lng: wh.coordinates[1]
+      })
+      if (dist < minDist) {
+        minDist = dist
+        closestIdx = i
+      }
+    })
+    return closestIdx
+  }
+
+  // When reroutePreviewPath is set, calculate reroute cost
+  useEffect(() => {
+    if (
+      showAcceptReroute &&
+      reroutePreviewPath &&
+      reroutePreviewPath.length > 1
+    ) {
+      const previewIdxArr = reroutePreviewPath
+        .map(point => {
+          const wh = wareHouseLocations.find(
+            w =>
+              Math.abs(w.coordinates[0] - point.lat) < 0.01 &&
+              Math.abs(w.coordinates[1] - point.lng) < 0.01
+          )
+          return wh ? wh.id : null
+        })
+        .filter(idx => idx !== null)
+      const previewCost = calculatePathCost(previewIdxArr, wareHouseLocations)
+      const newDestIdx = previewIdxArr[previewIdxArr.length - 1]
+      const isOnOriginalPath = currentAStarPath.includes(newDestIdx)
+      let extraCost = 0
+      let totalWithPenalty = 0
+      let partialCost = {
+        distance: 0,
+        warehouseCost: 0,
+        distanceCost: 0,
+        total: 0
+      }
+      if (!isOnOriginalPath) {
+        // Calculate cost for the portion already traveled
+        const currentIdx = getCurrentWarehouseIndex()
+        const traveledPath = currentAStarPath.slice(0, currentIdx + 1)
+        partialCost = calculatePathCost(traveledPath, wareHouseLocations)
+        extraCost = previewCost.total + partialCost.total
+        totalWithPenalty = previewCost.total + partialCost.total + 50
+      } else {
+        extraCost = 0
+        totalWithPenalty = previewCost.total + 50
+      }
+      setRerouteCost({
+        ...previewCost,
+        extraCost,
+        penalty: 50,
+        totalWithPenalty,
+        isOnOriginalPath,
+        partialCost
+      })
+    } else {
+      setRerouteCost(null)
+    }
+  }, [
+    showAcceptReroute,
+    reroutePreviewPath,
+    currentAStarPath,
+    deliveryPath,
+    truckMarker
+  ])
 
   return (
     <div className='w-full'>
@@ -732,53 +978,201 @@ export default function MapComponent ({
           ))}
         </select>
       </div>
-      {showSearchAndDropdown && (
-        <>
-          <div className='flex flex-col md:flex-row gap-4 mb-4 items-center justify-center bg-gray-50 p-4 rounded-lg shadow-sm'>
-            <input
-              id='search-box'
-              type='text'
-              placeholder='Search for a place...'
-              className='w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-400 transition'
-            />
-            {/* Reroute input and button */}
-            <div className='flex items-center gap-2 w-full md:w-1/2'>
-              <input
-                type='text'
-                ref={rerouteInputRef}
-                value={rerouteInput}
-                onChange={e => setRerouteInput(e.target.value)}
-                placeholder='Enter reroute destination...'
-                className='w-full px-4 py-2 border rounded shadow focus:outline-none focus:ring-2 focus:ring-orange-400 transition'
-                disabled={progress >= 90}
-              />
+      <div className='flex flex-col md:flex-row gap-4 mb-4 items-center justify-center bg-gray-50 p-4 rounded-lg shadow-sm'>
+        <input
+          id='search-box'
+          type='text'
+          placeholder='Search for a place...'
+          className='w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-400 transition'
+        />
+        {/* Reroute input and button */}
+        <div className='flex items-center gap-2 w-full md:w-1/2'>
+          <input
+            type='text'
+            ref={rerouteInputRef}
+            value={rerouteInput}
+            onChange={e => setRerouteInput(e.target.value)}
+            placeholder='Enter reroute destination...'
+            className='w-full px-4 py-2 border rounded shadow focus:outline-none focus:ring-2 focus:ring-orange-400 transition'
+            disabled={progress >= 90}
+          />
+          <button
+            className='px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition'
+            disabled={progress >= 90}
+            onClick={handleReroutePreview}
+          >
+            Reroute
+          </button>
+          {showAcceptReroute && (
+            <>
               <button
-                className='px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition'
-                disabled={progress >= 90}
-                onClick={handleReroutePreview}
+                className='px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 ml-2 transition'
+                onClick={handleAcceptReroute}
               >
-                Reroute
+                Accept Reroute
               </button>
-              {showAcceptReroute && (
-                <>
-                  <button
-                    className='px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 ml-2 transition'
-                    onClick={handleAcceptReroute}
-                  >
-                    Accept Reroute
-                  </button>
-                  <button
-                    className='px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 ml-2 transition'
-                    onClick={handleCancelReroute}
-                    title='Cancel reroute'
-                  >
-                    ✕
-                  </button>
-                </>
-              )}
+              <button
+                className='px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 ml-2 transition'
+                onClick={handleCancelReroute}
+                title='Cancel reroute'
+              >
+                ✕
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+      {showAcceptReroute &&
+        reroutePreviewPath &&
+        reroutePreviewPath.length > 1 && (
+          <div className='flex flex-wrap items-center justify-center mb-4 p-2 bg-orange-50 rounded-xl shadow text-orange-800 font-mono text-lg border border-orange-300'>
+            {reroutePreviewPath.map((point, i) => {
+              // Try to find the warehouse for this point
+              const wh = wareHouseLocations.find(
+                w =>
+                  Math.abs(w.coordinates[0] - point.lat) < 0.01 &&
+                  Math.abs(w.coordinates[1] - point.lng) < 0.01
+              )
+              return (
+                <span key={i} className='flex items-center'>
+                  {wh
+                    ? wh.district
+                    : `${point.lat.toFixed(2)},${point.lng.toFixed(2)}`}
+                  {i < reroutePreviewPath.length - 1 && (
+                    <span className='mx-2 text-orange-400'>&#8594;</span>
+                  )}
+                </span>
+              )
+            })}
+          </div>
+        )}
+      {currentAStarPath && currentAStarPath.length > 1 && (
+        <div className='mb-2 flex flex-col items-center justify-center'>
+          <div className='bg-blue-100 rounded-lg px-4 py-2 shadow text-blue-900 font-mono text-base'>
+            <div>
+              <b>Current Route Cost</b>
+            </div>
+            {lastRerouteCost && (
+              <>
+                <div className='text-xs text-blue-700 mb-1'>
+                  Rerouting Charges:
+                </div>
+                {!lastRerouteCost.isOnOriginalPath &&
+                  lastRerouteCost.partialCost &&
+                  lastRerouteCost.partialCost.total > 0 && (
+                    <>
+                      <div>
+                        Cost due to travel already made in original path
+                        (distance + warehouse):
+                      </div>
+                      <div>
+                        Distance:{' '}
+                        {lastRerouteCost.partialCost.distance.toFixed(2)} km ×
+                        ₹0.1 = ₹
+                        {lastRerouteCost.partialCost.distanceCost.toFixed(2)}
+                      </div>
+                      <div>
+                        Warehouses:{' '}
+                        {lastRerouteCost.partialCost.distance > 0
+                          ? lastRerouteCost.partialCost.distance.toFixed(2)
+                          : 0}{' '}
+                        × ₹10 = ₹
+                        {lastRerouteCost.partialCost.warehouseCost.toFixed(2)}
+                      </div>
+                      <div className='mb-1'>
+                        Subtotal: ₹
+                        {(
+                          lastRerouteCost.partialCost.distanceCost +
+                          lastRerouteCost.partialCost.warehouseCost
+                        ).toFixed(2)}
+                      </div>
+                    </>
+                  )}
+                <div>Reroute Penalty: ₹{lastRerouteCost.penalty}</div>
+              </>
+            )}
+            <div>
+              Distance: {originalCost.distance.toFixed(2)} km × ₹0.1 = ₹
+              {originalCost.distanceCost.toFixed(2)}
+            </div>
+            <div>
+              Warehouses: {currentAStarPath.length} × ₹10 = ₹
+              {originalCost.warehouseCost.toFixed(2)}
+            </div>
+            <div className='font-bold'>
+              Total: ₹
+              {lastRerouteCost
+                ? lastRerouteCost.totalWithPenalty.toFixed(2)
+                : originalCost.total.toFixed(2)}
             </div>
           </div>
-        </>
+        </div>
+      )}
+      {showAcceptReroute && rerouteCost && (
+        <div className='mb-2 flex flex-col items-center justify-center'>
+          <div className='bg-orange-100 rounded-lg px-4 py-2 shadow text-orange-900 font-mono text-base border border-orange-300'>
+            <div>
+              <b>Reroute Cost</b>
+            </div>
+            {!rerouteCost.isOnOriginalPath &&
+              rerouteCost.partialCost &&
+              rerouteCost.partialCost.total > 0 && (
+                <>
+                  <div className='text-xs text-orange-700 mb-1'>
+                    Cost due to travel already made in original path (distance +
+                    warehouse):
+                  </div>
+                  <div>
+                    Distance: {rerouteCost.partialCost.distance.toFixed(2)} km ×
+                    ₹0.1 = ₹{rerouteCost.partialCost.distanceCost.toFixed(2)}
+                  </div>
+                  <div>
+                    Warehouses:{' '}
+                    {rerouteCost.partialCost.distance > 0
+                      ? rerouteCost.partialCost.distance.toFixed(2)
+                      : 0}{' '}
+                    × ₹10 = ₹{rerouteCost.partialCost.warehouseCost.toFixed(2)}
+                  </div>
+                  <div className='mb-1'>
+                    Subtotal: ₹
+                    {(
+                      rerouteCost.partialCost.distanceCost +
+                      rerouteCost.partialCost.warehouseCost
+                    ).toFixed(2)}
+                  </div>
+                </>
+              )}
+            <div>
+              Distance: {rerouteCost.distance.toFixed(2)} km × ₹0.1 = ₹
+              {rerouteCost.distanceCost.toFixed(2)}
+            </div>
+            <div>
+              Warehouses:{' '}
+              {rerouteCost.distance > 0 ? rerouteCost.distance.toFixed(2) : 0} ×
+              ₹10 = ₹{rerouteCost.warehouseCost.toFixed(2)}
+            </div>
+            <div>Reroute Penalty: ₹{rerouteCost.penalty}</div>
+            <div className='font-bold'>
+              Total with Penalty: ₹{rerouteCost.totalWithPenalty.toFixed(2)}
+            </div>
+            <div className='text-xs mt-1'>
+              Additional cost: ₹{rerouteCost.extraCost.toFixed(2)}{' '}
+              {rerouteCost.extraCost <= 0 ? '(No extra distance)' : ''}
+            </div>
+          </div>
+        </div>
+      )}
+      {currentAStarPath && currentAStarPath.length > 1 && (
+        <div className='flex flex-wrap items-center justify-center mb-4 p-2 bg-blue-50 rounded-xl shadow text-blue-800 font-mono text-lg'>
+          {currentAStarPath.map((idx, i) => (
+            <span key={idx} className='flex items-center'>
+              {wareHouseLocations[idx].district}
+              {i < currentAStarPath.length - 1 && (
+                <span className='mx-2 text-blue-400'>&#8594;</span>
+              )}
+            </span>
+          ))}
+        </div>
       )}
       {/* Map Container */}
       <div
