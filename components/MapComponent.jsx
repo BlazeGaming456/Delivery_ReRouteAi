@@ -223,7 +223,95 @@ export default function MapComponent ({
       return
     }
 
-    // 2. Find original start warehouse with the item
+    // 2. Determine reroute start warehouse index
+    const segment = Math.floor(truckPathIndex / 4)
+    const atWarehouse = truckPathIndex % 4 === 0
+    const rerouteStartIdx = atWarehouse ? segment : segment + 1
+
+    // 3. Check if the new destination is already in the remaining path
+    let remainingPath = currentAStarPath
+      ? currentAStarPath.slice(rerouteStartIdx)
+      : []
+    const destIdx = wareHouseLocations.findIndex(
+      wh =>
+        Math.abs(wh.coordinates[0] - nearestToDest.coordinates[0]) < 0.01 &&
+        Math.abs(wh.coordinates[1] - nearestToDest.coordinates[1]) < 0.01
+    )
+    const destInPathIdx = remainingPath.indexOf(destIdx)
+    if (destInPathIdx !== -1) {
+      // Destination is in the remaining path
+      // Build new path: from rerouteStartIdx to the destination warehouse
+      const newAStarPath = currentAStarPath.slice(
+        rerouteStartIdx,
+        rerouteStartIdx + destInPathIdx + 1
+      )
+      // Interpolate deliveryPath for animation
+      let animatedPath = []
+      for (let i = 0; i < newAStarPath.length - 1; i++) {
+        const start = wareHouseLocations[newAStarPath[i]]
+        const end = wareHouseLocations[newAStarPath[i + 1]]
+        animatedPath.push({
+          lat: start.coordinates[0],
+          lng: start.coordinates[1]
+        })
+        animatedPath.push(
+          ...interpolatePoints(
+            { lat: start.coordinates[0], lng: start.coordinates[1] },
+            { lat: end.coordinates[0], lng: end.coordinates[1] },
+            3
+          )
+        )
+      }
+      animatedPath.push({
+        lat: wareHouseLocations[newAStarPath[newAStarPath.length - 1]]
+          .coordinates[0],
+        lng: wareHouseLocations[newAStarPath[newAStarPath.length - 1]]
+          .coordinates[1]
+      })
+      setReroutePreviewPath(animatedPath)
+      setReroutePreviewLabel(
+        `${wareHouseLocations[currentAStarPath[rerouteStartIdx]].district} → ${
+          nearestToDest.district
+        }`
+      )
+      setShowAcceptReroute(true)
+      // No reroute penalty, cost is for remaining path only
+      setRerouteCost({
+        distance: calculatePathDistance(animatedPath),
+        warehouseCount: newAStarPath.length,
+        penalty: 0,
+        type: 'in-path',
+        partialCost: {
+          distance: 0,
+          distanceCost: 0,
+          warehouseCost: 0,
+          total: 0
+        },
+        totalWithPenalty: 0,
+        extraCost: 0
+      })
+      if (reroutePolyline) reroutePolyline.setMap(null)
+      if (
+        window.google &&
+        window.google.maps &&
+        animatedPath.length > 1 &&
+        map
+      ) {
+        const poly = new window.google.maps.Polyline({
+          path: animatedPath,
+          geodesic: true,
+          strokeColor: '#FFA500', // orange
+          strokeOpacity: 1.0,
+          strokeWeight: 4,
+          map: map
+        })
+        setReroutePolyline(poly)
+      }
+      return
+    }
+
+    // 4. If not in path, compare next checkpoint vs nearest warehouse with item
+    // Find original start warehouse with the item
     const originalStartIdx = currentAStarPath ? currentAStarPath[0] : null
     const originalStartWarehouse =
       originalStartIdx !== null ? wareHouseLocations[originalStartIdx] : null
@@ -232,10 +320,10 @@ export default function MapComponent ({
       originalStartWarehouse.inventory &&
       originalStartWarehouse.inventory.includes(selectedItem)
 
-    // 3. Find truck's next warehouse with the item
+    // Find truck's next warehouse with the item
     let nextWarehouseWithItem = null
-    if (currentAStarPath && currentStepIndex < currentAStarPath.length - 1) {
-      for (let i = currentStepIndex + 1; i < currentAStarPath.length; i++) {
+    if (currentAStarPath && rerouteStartIdx < currentAStarPath.length - 1) {
+      for (let i = rerouteStartIdx + 1; i < currentAStarPath.length; i++) {
         const wh = wareHouseLocations[currentAStarPath[i]]
         if (wh.inventory && wh.inventory.includes(selectedItem)) {
           nextWarehouseWithItem = wh
@@ -245,7 +333,7 @@ export default function MapComponent ({
     }
     // If not found, fallback to nearest warehouse with item from truck's current position
     if (!nextWarehouseWithItem) {
-      const truckPos = deliveryPath[currentStepIndex] || deliveryPath[0]
+      const truckPos = deliveryPath[truckPathIndex] || deliveryPath[0]
       let minDistItem = Infinity
       wareHouseLocations.forEach(wh => {
         if (wh.inventory && wh.inventory.includes(selectedItem)) {
@@ -263,20 +351,24 @@ export default function MapComponent ({
       })
     }
 
-    // 4. Calculate both distances
+    // Calculate both distances
     let options = []
-    if (originalStartHasItem) {
+    // Option 1: from rerouteStartIdx warehouse
+    if (currentAStarPath && rerouteStartIdx < currentAStarPath.length) {
+      const wh = wareHouseLocations[currentAStarPath[rerouteStartIdx]]
       options.push({
-        start: originalStartWarehouse,
-        label: `${originalStartWarehouse.district} → ${nearestToDest.district}`,
+        start: wh,
+        label: `${wh.district} → ${nearestToDest.district}`,
         distance: getDistance(
-          originalStartWarehouse.coordinates[0],
-          originalStartWarehouse.coordinates[1],
+          wh.coordinates[0],
+          wh.coordinates[1],
           nearestToDest.coordinates[0],
           nearestToDest.coordinates[1]
-        )
+        ),
+        type: 'from-next'
       })
     }
+    // Option 2: from nearest warehouse with item
     if (nextWarehouseWithItem) {
       options.push({
         start: nextWarehouseWithItem,
@@ -286,7 +378,8 @@ export default function MapComponent ({
           nextWarehouseWithItem.coordinates[1],
           nearestToDest.coordinates[0],
           nearestToDest.coordinates[1]
-        )
+        ),
+        type: 'from-item-warehouse'
       })
     }
     if (options.length === 0) {
@@ -294,11 +387,11 @@ export default function MapComponent ({
       setIsPaused(false)
       return
     }
-    // 5. Pick the shortest
+    // Pick the shortest
     options.sort((a, b) => a.distance - b.distance)
     const best = options[0]
 
-    // 6. Build reroute path and label
+    // Build reroute path and label
     const bestPath = [
       {
         lat: best.start.coordinates[0],
@@ -307,7 +400,17 @@ export default function MapComponent ({
       { lat: nearestToDest.coordinates[0], lng: nearestToDest.coordinates[1] }
     ]
     setReroutePreviewPath(bestPath)
-    setReroutePreviewLabel(best.label) // <-- Add this state for UI
+    setReroutePreviewLabel(best.label)
+    setShowAcceptReroute(true)
+    setRerouteCost({
+      distance: best.distance,
+      warehouseCount: 2,
+      penalty: 50,
+      type: best.type,
+      partialCost: { distance: 0, distanceCost: 0, warehouseCost: 0, total: 0 },
+      totalWithPenalty: 0,
+      extraCost: 0
+    })
     if (reroutePolyline) reroutePolyline.setMap(null)
     if (window.google && window.google.maps && bestPath.length > 1 && map) {
       const poly = new window.google.maps.Polyline({
@@ -320,7 +423,6 @@ export default function MapComponent ({
       })
       setReroutePolyline(poly)
     }
-    setShowAcceptReroute(true)
   }
 
   const handleAcceptReroute = () => {
@@ -329,6 +431,10 @@ export default function MapComponent ({
     if (routePolyline) routePolyline.setMap(null) // Remove old path
     setReroutePreviewPath([])
     setShowAcceptReroute(false)
+    // Reset animation state for new path
+    animationIndexRef.current = 0
+    setProgress(0)
+    setTruckPathIndex(0)
     setIsPaused(false) // Resume animation with new path
     // Find new start and end warehouse based on reroutePreviewPath
     if (reroutePreviewPath.length === 2) {
@@ -645,22 +751,23 @@ export default function MapComponent ({
     if (routePolyline) routePolyline.setMap(null)
   }, [currentAStarPath])
 
-  // Autocomplete for reroute input
+  // Defensive Autocomplete initialization for reroute input
   useEffect(() => {
-    if (!window.google || !rerouteInputRef.current) return
-    const autocomplete = new window.google.maps.places.Autocomplete(
-      rerouteInputRef.current
-    )
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace()
-      if (place.geometry && place.geometry.location) {
-        setRerouteLatLng({
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng()
-        })
-        setRerouteInput(place.formatted_address || place.name)
-      }
-    })
+    if (!window.google) return
+    const input = rerouteInputRef.current
+    if (input && input instanceof window.HTMLInputElement) {
+      const autocomplete = new window.google.maps.places.Autocomplete(input)
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace()
+        if (place.geometry && place.geometry.location) {
+          setRerouteLatLng({
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng()
+          })
+          setRerouteInput(place.formatted_address || place.name)
+        }
+      })
+    }
   }, [rerouteInputRef.current])
 
   // In the autocomplete for the main search box, after a place is selected, find the nearest warehouse with the item (start) and the nearest warehouse to the user (end), and route from start to end.
@@ -998,6 +1105,49 @@ export default function MapComponent ({
     truckMarker
   ])
 
+  // Helper to calculate total distance of a path
+  function calculatePathDistance (path) {
+    let dist = 0
+    for (let i = 0; i < path.length - 1; i++) {
+      dist += getDistance(
+        path[i].lat,
+        path[i].lng,
+        path[i + 1].lat,
+        path[i + 1].lng
+      )
+    }
+    return dist
+  }
+
+  // Helper to safely format numbers
+  function safeToFixed (val, digits = 2) {
+    return typeof val === 'number' && !isNaN(val) ? val.toFixed(digits) : 'N/A'
+  }
+
+  // Helper to safely format nested numbers
+  function safeNestedToFixed (obj, path, digits = 2) {
+    try {
+      let val = obj
+      for (const key of path) {
+        if (val == null) return 'N/A'
+        val = val[key]
+      }
+      return typeof val === 'number' && !isNaN(val)
+        ? val.toFixed(digits)
+        : 'N/A'
+    } catch {
+      return 'N/A'
+    }
+  }
+
+  // Helper to safely get nested property
+  function get (obj, path) {
+    return path.reduce(
+      (acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined),
+      obj
+    )
+  }
+
   return (
     <div className='w-full'>
       <h1 className='text-2xl font-bold text-center mb-6 font-mono text-blue-700 tracking-wide'>
@@ -1124,24 +1274,40 @@ export default function MapComponent ({
                       </div>
                       <div>
                         Distance:{' '}
-                        {lastRerouteCost.partialCost.distance.toFixed(2)} km ×
-                        ₹0.1 = ₹
-                        {lastRerouteCost.partialCost.distanceCost.toFixed(2)}
+                        {safeNestedToFixed(lastRerouteCost, [
+                          'partialCost',
+                          'distance'
+                        ])}
+                        × ₹0.1 = ₹
+                        {safeNestedToFixed(lastRerouteCost, [
+                          'partialCost',
+                          'distanceCost'
+                        ])}
                       </div>
                       <div>
                         Warehouses:{' '}
-                        {lastRerouteCost.partialCost.distance > 0
-                          ? lastRerouteCost.partialCost.distance.toFixed(2)
-                          : 0}{' '}
+                        {safeNestedToFixed(lastRerouteCost, [
+                          'partialCost',
+                          'distance'
+                        ])}
                         × ₹10 = ₹
-                        {lastRerouteCost.partialCost.warehouseCost.toFixed(2)}
+                        {safeNestedToFixed(lastRerouteCost, [
+                          'partialCost',
+                          'warehouseCost'
+                        ])}
                       </div>
                       <div className='mb-1'>
                         Subtotal: ₹
-                        {(
-                          lastRerouteCost.partialCost.distanceCost +
-                          lastRerouteCost.partialCost.warehouseCost
-                        ).toFixed(2)}
+                        {safeToFixed(
+                          (get(lastRerouteCost, [
+                            'partialCost',
+                            'distanceCost'
+                          ]) || 0) +
+                            (get(lastRerouteCost, [
+                              'partialCost',
+                              'warehouseCost'
+                            ]) || 0)
+                        )}
                       </div>
                     </>
                   )}
@@ -1149,12 +1315,12 @@ export default function MapComponent ({
               </>
             )}
             <div>
-              Distance: {originalCost.distance.toFixed(2)} km × ₹0.1 = ₹
-              {originalCost.distanceCost.toFixed(2)}
+              Distance: {safeToFixed(originalCost.distance)} km × ₹0.1 = ₹
+              {safeToFixed(originalCost.distanceCost)}
             </div>
             <div>
               Warehouses: {currentAStarPath.length} × ₹10 = ₹
-              {originalCost.warehouseCost.toFixed(2)}
+              {safeToFixed(originalCost.warehouseCost)}
             </div>
             <div className='font-bold'>
               Total: ₹
@@ -1180,40 +1346,53 @@ export default function MapComponent ({
                     warehouse):
                   </div>
                   <div>
-                    Distance: {rerouteCost.partialCost.distance.toFixed(2)} km ×
-                    ₹0.1 = ₹{rerouteCost.partialCost.distanceCost.toFixed(2)}
+                    Distance:{' '}
+                    {safeNestedToFixed(rerouteCost, [
+                      'partialCost',
+                      'distance'
+                    ])}
+                    km × ₹0.1 = ₹
+                    {safeNestedToFixed(rerouteCost, [
+                      'partialCost',
+                      'distanceCost'
+                    ])}
                   </div>
                   <div>
                     Warehouses:{' '}
-                    {rerouteCost.partialCost.distance > 0
-                      ? rerouteCost.partialCost.distance.toFixed(2)
-                      : 0}{' '}
-                    × ₹10 = ₹{rerouteCost.partialCost.warehouseCost.toFixed(2)}
+                    {safeNestedToFixed(rerouteCost, [
+                      'partialCost',
+                      'distance'
+                    ])}
+                    × ₹10 = ₹
+                    {safeNestedToFixed(rerouteCost, [
+                      'partialCost',
+                      'warehouseCost'
+                    ])}
                   </div>
                   <div className='mb-1'>
                     Subtotal: ₹
-                    {(
-                      rerouteCost.partialCost.distanceCost +
-                      rerouteCost.partialCost.warehouseCost
-                    ).toFixed(2)}
+                    {safeToFixed(
+                      (get(rerouteCost, ['partialCost', 'distanceCost']) || 0) +
+                        (get(rerouteCost, ['partialCost', 'warehouseCost']) ||
+                          0)
+                    )}
                   </div>
                 </>
               )}
             <div>
-              Distance: {rerouteCost.distance.toFixed(2)} km × ₹0.1 = ₹
-              {rerouteCost.distanceCost.toFixed(2)}
+              Distance: {safeToFixed(rerouteCost.distance)} km × ₹0.1 = ₹
+              {safeToFixed(rerouteCost.distanceCost)}
             </div>
             <div>
-              Warehouses:{' '}
-              {rerouteCost.distance > 0 ? rerouteCost.distance.toFixed(2) : 0} ×
-              ₹10 = ₹{rerouteCost.warehouseCost.toFixed(2)}
+              Warehouses: {safeToFixed(rerouteCost.distance)}× ₹10 = ₹
+              {safeToFixed(rerouteCost.warehouseCost)}
             </div>
             <div>Reroute Penalty: ₹{rerouteCost.penalty}</div>
             <div className='font-bold'>
-              Total with Penalty: ₹{rerouteCost.totalWithPenalty.toFixed(2)}
+              Total with Penalty: ₹{safeToFixed(rerouteCost.totalWithPenalty)}
             </div>
             <div className='text-xs mt-1'>
-              Additional cost: ₹{rerouteCost.extraCost.toFixed(2)}{' '}
+              Additional cost: ₹{safeToFixed(rerouteCost.extraCost)}{' '}
               {rerouteCost.extraCost <= 0 ? '(No extra distance)' : ''}
             </div>
           </div>
