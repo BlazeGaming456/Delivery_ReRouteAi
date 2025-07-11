@@ -31,6 +31,8 @@ export default function MapComponent ({
   // If selectedItemProp is provided, use it as the selected item
   const [selectedItem, setSelectedItem] = useState(selectedItemProp || 'item1')
   const [directionsRenderer, setDirectionsRenderer] = useState(null)
+  const [reroutePreviewLabel, setReroutePreviewLabel] = useState('')
+  const [truckPathIndex, setTruckPathIndex] = useState(0)
 
   //Warehouse Locations
   const wareHouseLocations = [
@@ -221,72 +223,91 @@ export default function MapComponent ({
       return
     }
 
-    // 2. Find the nearest warehouse to the reroute destination that has the item
-    let minDistItem = Infinity
-    let nearestWithItem = null
-    wareHouseLocations.forEach(wh => {
-      if (wh.inventory.includes(selectedItem)) {
-        const dist = getDistance(
-          rerouteLatLng.lat,
-          rerouteLatLng.lng,
-          wh.coordinates[0],
-          wh.coordinates[1]
-        )
-        if (dist < minDistItem) {
-          minDistItem = dist
-          nearestWithItem = wh
+    // 2. Find original start warehouse with the item
+    const originalStartIdx = currentAStarPath ? currentAStarPath[0] : null
+    const originalStartWarehouse =
+      originalStartIdx !== null ? wareHouseLocations[originalStartIdx] : null
+    const originalStartHasItem =
+      originalStartWarehouse &&
+      originalStartWarehouse.inventory &&
+      originalStartWarehouse.inventory.includes(selectedItem)
+
+    // 3. Find truck's next warehouse with the item
+    let nextWarehouseWithItem = null
+    if (currentAStarPath && currentStepIndex < currentAStarPath.length - 1) {
+      for (let i = currentStepIndex + 1; i < currentAStarPath.length; i++) {
+        const wh = wareHouseLocations[currentAStarPath[i]]
+        if (wh.inventory && wh.inventory.includes(selectedItem)) {
+          nextWarehouseWithItem = wh
+          break
         }
       }
-    })
-
-    // 3. Get current truck position (next warehouse in path, or current position if not at a warehouse)
-    let truckPos = deliveryPath[currentStepIndex] || deliveryPath[0]
-    let nextWarehouse = null
-    if (currentAStarPath && currentStepIndex < currentAStarPath.length - 1) {
-      nextWarehouse = wareHouseLocations[currentAStarPath[currentStepIndex + 1]]
-      truckPos = {
-        lat: nextWarehouse.coordinates[0],
-        lng: nextWarehouse.coordinates[1]
-      }
+    }
+    // If not found, fallback to nearest warehouse with item from truck's current position
+    if (!nextWarehouseWithItem) {
+      const truckPos = deliveryPath[currentStepIndex] || deliveryPath[0]
+      let minDistItem = Infinity
+      wareHouseLocations.forEach(wh => {
+        if (wh.inventory && wh.inventory.includes(selectedItem)) {
+          const dist = getDistance(
+            truckPos.lat,
+            truckPos.lng,
+            wh.coordinates[0],
+            wh.coordinates[1]
+          )
+          if (dist < minDistItem) {
+            minDistItem = dist
+            nextWarehouseWithItem = wh
+          }
+        }
+      })
     }
 
-    // 4. Compare distances
-    // Option 1: From current truck position to new destination warehouse
-    const distFromTruck = getDistance(
-      truckPos.lat,
-      truckPos.lng,
-      nearestToDest.coordinates[0],
-      nearestToDest.coordinates[1]
-    )
-    // Option 2: From nearest warehouse with item to new destination warehouse
-    let distFromWarehouse = Infinity
-    if (nearestWithItem) {
-      distFromWarehouse = getDistance(
-        nearestWithItem.coordinates[0],
-        nearestWithItem.coordinates[1],
-        nearestToDest.coordinates[0],
-        nearestToDest.coordinates[1]
-      )
+    // 4. Calculate both distances
+    let options = []
+    if (originalStartHasItem) {
+      options.push({
+        start: originalStartWarehouse,
+        label: `${originalStartWarehouse.district} → ${nearestToDest.district}`,
+        distance: getDistance(
+          originalStartWarehouse.coordinates[0],
+          originalStartWarehouse.coordinates[1],
+          nearestToDest.coordinates[0],
+          nearestToDest.coordinates[1]
+        )
+      })
     }
-
-    // 5. Choose the shorter
-    let bestPath
-    if (distFromTruck <= distFromWarehouse) {
-      bestPath = [
-        truckPos,
-        { lat: nearestToDest.coordinates[0], lng: nearestToDest.coordinates[1] }
-      ]
-    } else {
-      bestPath = [
-        {
-          lat: nearestWithItem.coordinates[0],
-          lng: nearestWithItem.coordinates[1]
-        },
-        { lat: nearestToDest.coordinates[0], lng: nearestToDest.coordinates[1] }
-      ]
+    if (nextWarehouseWithItem) {
+      options.push({
+        start: nextWarehouseWithItem,
+        label: `${nextWarehouseWithItem.district} → ${nearestToDest.district}`,
+        distance: getDistance(
+          nextWarehouseWithItem.coordinates[0],
+          nextWarehouseWithItem.coordinates[1],
+          nearestToDest.coordinates[0],
+          nearestToDest.coordinates[1]
+        )
+      })
     }
+    if (options.length === 0) {
+      alert('No valid reroute start warehouse with the item found.')
+      setIsPaused(false)
+      return
+    }
+    // 5. Pick the shortest
+    options.sort((a, b) => a.distance - b.distance)
+    const best = options[0]
 
+    // 6. Build reroute path and label
+    const bestPath = [
+      {
+        lat: best.start.coordinates[0],
+        lng: best.start.coordinates[1]
+      },
+      { lat: nearestToDest.coordinates[0], lng: nearestToDest.coordinates[1] }
+    ]
     setReroutePreviewPath(bestPath)
+    setReroutePreviewLabel(best.label) // <-- Add this state for UI
     if (reroutePolyline) reroutePolyline.setMap(null)
     if (window.google && window.google.maps && bestPath.length > 1 && map) {
       const poly = new window.google.maps.Polyline({
@@ -350,6 +371,23 @@ export default function MapComponent ({
     setReroutePreviewPath([])
     setShowAcceptReroute(false)
     setIsPaused(false) // Resume animation with original path
+    // Resume from current animation index
+    if (animationInterval) clearInterval(animationInterval)
+    if (map && deliveryPath.length > 0 && truckMarker) {
+      let index = animationIndexRef.current
+      const interval = setInterval(() => {
+        if (index >= deliveryPath.length) {
+          clearInterval(interval)
+          setAnimationInterval(null)
+          return
+        }
+        truckMarker.setPosition(deliveryPath[index])
+        setProgress(((index + 1) / deliveryPath.length) * 100)
+        animationIndexRef.current = index
+        index++
+      }, 1000)
+      setAnimationInterval(interval)
+    }
   }
 
   // Track the current A* path in state for reroute logic
@@ -525,6 +563,8 @@ export default function MapComponent ({
   }
 
   // Truck animation and progress tracking
+  const animationIndexRef = useRef(0) // Track current animation index
+
   useEffect(() => {
     if (!map || deliveryPath.length === 0 || isPaused) return
 
@@ -542,7 +582,8 @@ export default function MapComponent ({
       setTruckMarker(marker)
     }
 
-    let index = 0
+    let index = animationIndexRef.current || 0
+    setTruckPathIndex(index) // Set initial
     const interval = setInterval(() => {
       if (index >= deliveryPath.length) {
         clearInterval(interval)
@@ -551,8 +592,10 @@ export default function MapComponent ({
       }
       marker.setPosition(deliveryPath[index])
       setProgress(((index + 1) / deliveryPath.length) * 100)
+      animationIndexRef.current = index
+      setTruckPathIndex(index)
       index++
-    }, 1000) // 1 second per step
+    }, 1000)
 
     setAnimationInterval(interval)
     return () => clearInterval(interval)
@@ -962,30 +1005,10 @@ export default function MapComponent ({
       </h1>
       {/* Input fields group */}
       <div className='mb-4 flex flex-col md:flex-row items-center justify-center gap-4'>
-        <label htmlFor='item-select' className='font-semibold text-gray-700'>
-          Select Item:
-        </label>
-        <select
-          id='item-select'
-          value={selectedItem}
-          onChange={e => setSelectedItem(e.target.value)}
-          className='px-4 py-2 border rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-400 transition'
-        >
-          {Array.from({ length: 10 }, (_, i) => `item${i + 1}`).map(item => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
+        {/* Remove item select and search box */}
       </div>
       <div className='flex flex-col md:flex-row gap-4 mb-4 items-center justify-center bg-gray-50 p-4 rounded-lg shadow-sm'>
-        <input
-          id='search-box'
-          type='text'
-          placeholder='Search for a place...'
-          className='w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring-2 focus:ring-blue-400 transition'
-        />
-        {/* Reroute input and button */}
+        {/* Only reroute input and buttons */}
         <div className='flex items-center gap-2 w-full md:w-1/2'>
           <input
             type='text'
@@ -1022,6 +1045,35 @@ export default function MapComponent ({
           )}
         </div>
       </div>
+      {/* Show last and next checkpoint */}
+      {currentAStarPath && currentAStarPath.length > 1 && (
+        <div className='mb-2 flex flex-col items-center justify-center'>
+          <div className='bg-yellow-50 rounded-lg px-4 py-2 shadow text-yellow-900 font-mono text-base flex gap-4'>
+            {(() => {
+              const segment = Math.floor(truckPathIndex / 4)
+              const atWarehouse = truckPathIndex % 4 === 0
+              if (atWarehouse) {
+                const idx = currentAStarPath[segment]
+                return (
+                  <span>
+                    <b>Reached:</b> {wareHouseLocations[idx]?.district || 'N/A'}
+                  </span>
+                )
+              } else {
+                const idxA = currentAStarPath[segment]
+                const idxB = currentAStarPath[segment + 1]
+                return (
+                  <span>
+                    <b>Between:</b>{' '}
+                    {wareHouseLocations[idxA]?.district || 'N/A'} →{' '}
+                    {wareHouseLocations[idxB]?.district || 'N/A'}
+                  </span>
+                )
+              }
+            })()}
+          </div>
+        </div>
+      )}
       {showAcceptReroute &&
         reroutePreviewPath &&
         reroutePreviewPath.length > 1 && (
@@ -1046,6 +1098,11 @@ export default function MapComponent ({
             })}
           </div>
         )}
+      {showAcceptReroute && reroutePreviewLabel && (
+        <div className='flex flex-wrap items-center justify-center mb-4 p-2 bg-orange-50 rounded-xl shadow text-orange-800 font-mono text-lg border border-orange-300'>
+          <span className='flex items-center'>{reroutePreviewLabel}</span>
+        </div>
+      )}
       {currentAStarPath && currentAStarPath.length > 1 && (
         <div className='mb-2 flex flex-col items-center justify-center'>
           <div className='bg-blue-100 rounded-lg px-4 py-2 shadow text-blue-900 font-mono text-base'>
