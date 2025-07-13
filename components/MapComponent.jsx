@@ -743,7 +743,20 @@ export default function MapComponent ({
 
   // When currentAStarPath changes, build the full path with 3 interpolated steps per segment, and animate the truck along this path, but do NOT draw a polyline for this path.
   useEffect(() => {
-    if (!currentAStarPath || currentAStarPath.length < 2) return
+    if (!currentAStarPath) return
+    // If the path is trivial (start and end are the same), set progress to 100%
+    if (currentAStarPath.length === 1) {
+      setProgress(100)
+      if (onProgressChange) onProgressChange(100)
+      setDeliveryPath([
+        {
+          lat: wareHouseLocations[currentAStarPath[0]].coordinates[0],
+          lng: wareHouseLocations[currentAStarPath[0]].coordinates[1]
+        }
+      ])
+      return
+    }
+    if (currentAStarPath.length < 2) return
     // Build warehouse coordinates array
     const warehouseCoords = currentAStarPath.map(idx => ({
       lat: wareHouseLocations[idx].coordinates[0],
@@ -1201,10 +1214,10 @@ export default function MapComponent ({
                 value={rerouteInput}
                 onChange={e => setRerouteInput(e.target.value)}
                 placeholder='Enter new delivery address...'
-                className='input-walmart w-full pl-10'
+                className='input-walmart w-full pr-10'
                 disabled={progress >= 90}
               />
-              <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+              <div className='absolute top-0 right-0 bottom-0 pr-3 flex items-center pointer-events-none'>
                 <svg
                   className='h-5 w-5 text-gray-400'
                   fill='none'
