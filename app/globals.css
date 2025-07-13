@@ -1,1 +1,197 @@
-@import "tailwindcss";
+/* Google Fonts import must be first */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@import 'tailwindcss';
+
+/* Walmart-inspired custom styles */
+:root {
+  --walmart-blue: #0071ce;
+  --walmart-blue-dark: #005a9e;
+  --walmart-yellow: #ffc220;
+  --walmart-yellow-dark: #e6a800;
+  --walmart-gray: #f8f9fa;
+  --walmart-gray-dark: #6c757d;
+  --walmart-success: #28a745;
+  --walmart-warning: #ffc107;
+  --walmart-danger: #dc3545;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    sans-serif;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  min-height: 100vh;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--walmart-blue);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--walmart-blue-dark);
+}
+
+/* Walmart-style buttons */
+.btn-walmart {
+  background: linear-gradient(
+    135deg,
+    var(--walmart-blue) 0%,
+    var(--walmart-blue-dark) 100%
+  );
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 113, 206, 0.2);
+}
+
+.btn-walmart:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 113, 206, 0.3);
+}
+
+.btn-walmart-secondary {
+  background: white;
+  color: var(--walmart-blue);
+  border: 2px solid var(--walmart-blue);
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.btn-walmart-secondary:hover {
+  background: var(--walmart-blue);
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* Walmart-style cards */
+.card-walmart {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.card-walmart:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* Walmart-style inputs */
+.input-walmart {
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.input-walmart:focus {
+  outline: none;
+  border-color: var(--walmart-blue);
+  box-shadow: 0 0 0 3px rgba(0, 113, 206, 0.1);
+}
+
+/* Loading animation */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Progress bar */
+.progress-walmart {
+  background: #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 8px;
+}
+
+.progress-walmart-fill {
+  background: linear-gradient(
+    90deg,
+    var(--walmart-blue) 0%,
+    var(--walmart-yellow) 100%
+  );
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+/* Status badges */
+.badge-success {
+  background: var(--walmart-success);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-warning {
+  background: var(--walmart-warning);
+  color: #212529;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-info {
+  background: var(--walmart-blue);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Map container styling */
+.map-container {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .card-walmart {
+    margin: 8px;
+    border-radius: 12px;
+  }
+
+  .btn-walmart {
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+}

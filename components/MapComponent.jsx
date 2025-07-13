@@ -1150,282 +1150,578 @@ export default function MapComponent ({
   }
 
   return (
-    <div className='w-full'>
-      <h1 className='text-2xl font-bold text-center mb-6 font-mono text-blue-700 tracking-wide'>
-        Delivery Route Simulator
-      </h1>
-      {/* Input fields group */}
-      <div className='mb-4 flex flex-col md:flex-row items-center justify-center gap-4'>
-        {/* Remove item select and search box */}
-      </div>
-      <div className='flex flex-col md:flex-row gap-4 mb-4 items-center justify-center bg-gray-50 p-4 rounded-lg shadow-sm'>
-        {/* Only reroute input and buttons */}
-        <div className='flex items-center gap-2 w-full md:w-1/2'>
-          <input
-            type='text'
-            ref={rerouteInputRef}
-            value={rerouteInput}
-            onChange={e => setRerouteInput(e.target.value)}
-            placeholder='Enter reroute destination...'
-            className='w-full px-4 py-2 border rounded shadow focus:outline-none focus:ring-2 focus:ring-orange-400 transition'
-            disabled={progress >= 90}
-          />
-          <button
-            className='px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition'
-            disabled={progress >= 90}
-            onClick={handleReroutePreview}
-          >
-            Reroute
-          </button>
+    <div className='w-full space-y-6'>
+      {/* Reroute Controls */}
+      <div className='card-walmart p-6'>
+        <div className='flex items-center mb-4'>
+          <div className='bg-[#0071ce] rounded-lg w-8 h-8 flex items-center justify-center mr-3'>
+            <svg
+              className='w-4 h-4 text-white'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M13 10V3L4 14h7v7l9-11h-7z'
+              />
+            </svg>
+          </div>
+          <div>
+            <h3 className='text-lg font-bold text-gray-900'>
+              Route Optimization
+            </h3>
+            <p className='text-sm text-gray-600'>
+              Modify delivery route in real-time
+            </p>
+          </div>
+        </div>
+
+        <div className='flex flex-col md:flex-row gap-4 items-center'>
+          <div className='flex items-center gap-3 w-full md:w-2/3'>
+            <div className='relative flex-1'>
+              <input
+                type='text'
+                ref={rerouteInputRef}
+                value={rerouteInput}
+                onChange={e => setRerouteInput(e.target.value)}
+                placeholder='Enter new delivery address...'
+                className='input-walmart w-full pl-10'
+                disabled={progress >= 90}
+              />
+              <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+                <svg
+                  className='h-5 w-5 text-gray-400'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z'
+                  />
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M15 11a3 3 0 11-6 0 3 3 0 016 0z'
+                  />
+                </svg>
+              </div>
+            </div>
+            <button
+              className='btn-walmart flex items-center'
+              disabled={progress >= 90}
+              onClick={handleReroutePreview}
+            >
+              <svg
+                className='w-4 h-4 mr-2'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M13 10V3L4 14h7v7l9-11h-7z'
+                />
+              </svg>
+              Optimize Route
+            </button>
+          </div>
+
           {showAcceptReroute && (
-            <>
+            <div className='flex gap-3'>
               <button
-                className='px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 ml-2 transition'
+                className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-200 flex items-center'
                 onClick={handleAcceptReroute}
               >
-                Accept Reroute
+                <svg
+                  className='w-4 h-4 mr-2'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M5 13l4 4L19 7'
+                  />
+                </svg>
+                Accept Route
               </button>
               <button
-                className='px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 ml-2 transition'
+                className='bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors duration-200'
                 onClick={handleCancelReroute}
                 title='Cancel reroute'
               >
-                ✕
+                <svg
+                  className='w-5 h-5'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M6 18L18 6M6 6l12 12'
+                  />
+                </svg>
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>
-      {/* Show last and next checkpoint */}
+
+      {/* Current Status */}
       {currentAStarPath && currentAStarPath.length > 1 && (
-        <div className='mb-2 flex flex-col items-center justify-center'>
-          <div className='bg-yellow-50 rounded-lg px-4 py-2 shadow text-yellow-900 font-mono text-base flex gap-4'>
-            {(() => {
-              const segment = Math.floor(truckPathIndex / 4)
-              const atWarehouse = truckPathIndex % 4 === 0
-              if (atWarehouse) {
-                const idx = currentAStarPath[segment]
-                return (
-                  <span>
-                    <b>Reached:</b> {wareHouseLocations[idx]?.district || 'N/A'}
+        <div className='card-walmart p-6'>
+          <div className='flex items-center mb-4'>
+            <div className='bg-[#0071ce] rounded-lg w-8 h-8 flex items-center justify-center mr-3'>
+              <svg
+                className='w-4 h-4 text-white'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3'
+                />
+              </svg>
+            </div>
+            <div>
+              <h3 className='text-lg font-bold text-gray-900'>Current Route</h3>
+              <p className='text-sm text-gray-600'>
+                Live delivery path and status
+              </p>
+            </div>
+          </div>
+
+          <div className='grid md:grid-cols-2 gap-6'>
+            {/* Current Location */}
+            <div className='bg-gray-50 rounded-lg p-4'>
+              <h4 className='font-semibold text-gray-900 mb-2 flex items-center'>
+                <svg
+                  className='w-4 h-4 text-[#0071ce] mr-2'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z'
+                  />
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M15 11a3 3 0 11-6 0 3 3 0 016 0z'
+                  />
+                </svg>
+                Current Location
+              </h4>
+              <div className='badge-info'>
+                {(() => {
+                  const segment = Math.floor(truckPathIndex / 4)
+                  const atWarehouse = truckPathIndex % 4 === 0
+                  if (atWarehouse) {
+                    const idx = currentAStarPath[segment]
+                    return `Reached: ${
+                      wareHouseLocations[idx]?.district || 'N/A'
+                    }`
+                  } else {
+                    const idxA = currentAStarPath[segment]
+                    const idxB = currentAStarPath[segment + 1]
+                    return `Between: ${
+                      wareHouseLocations[idxA]?.district || 'N/A'
+                    } → ${wareHouseLocations[idxB]?.district || 'N/A'}`
+                  }
+                })()}
+              </div>
+            </div>
+
+            {/* Route Path */}
+            <div className='bg-gray-50 rounded-lg p-4'>
+              <h4 className='font-semibold text-gray-900 mb-2 flex items-center'>
+                <svg
+                  className='w-4 h-4 text-[#0071ce] mr-2'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3'
+                  />
+                </svg>
+                Route Path
+              </h4>
+              <div className='flex flex-wrap items-center gap-2 text-sm'>
+                {currentAStarPath.map((idx, i) => (
+                  <span key={idx} className='flex items-center'>
+                    <span className='bg-[#0071ce] text-white px-2 py-1 rounded text-xs font-medium'>
+                      {wareHouseLocations[idx].district}
+                    </span>
+                    {i < currentAStarPath.length - 1 && (
+                      <svg
+                        className='w-4 h-4 text-[#0071ce] mx-1'
+                        fill='none'
+                        stroke='currentColor'
+                        viewBox='0 0 24 24'
+                      >
+                        <path
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                          strokeWidth={2}
+                          d='M9 5l7 7-7 7'
+                        />
+                      </svg>
+                    )}
                   </span>
-                )
-              } else {
-                const idxA = currentAStarPath[segment]
-                const idxB = currentAStarPath[segment + 1]
-                return (
-                  <span>
-                    <b>Between:</b>{' '}
-                    {wareHouseLocations[idxA]?.district || 'N/A'} →{' '}
-                    {wareHouseLocations[idxB]?.district || 'N/A'}
-                  </span>
-                )
-              }
-            })()}
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Reroute Preview */}
       {showAcceptReroute &&
         reroutePreviewPath &&
         reroutePreviewPath.length > 1 && (
-          <div className='flex flex-wrap items-center justify-center mb-4 p-2 bg-orange-50 rounded-xl shadow text-orange-800 font-mono text-lg border border-orange-300'>
-            {reroutePreviewPath.map((point, i) => {
-              // Try to find the warehouse for this point
-              const wh = wareHouseLocations.find(
-                w =>
-                  Math.abs(w.coordinates[0] - point.lat) < 0.01 &&
-                  Math.abs(w.coordinates[1] - point.lng) < 0.01
-              )
-              return (
-                <span key={i} className='flex items-center'>
-                  {wh
-                    ? wh.district
-                    : `${point.lat.toFixed(2)},${point.lng.toFixed(2)}`}
-                  {i < reroutePreviewPath.length - 1 && (
-                    <span className='mx-2 text-orange-400'>&#8594;</span>
-                  )}
-                </span>
-              )
-            })}
+          <div className='card-walmart p-6 border-2 border-orange-200'>
+            <div className='flex items-center mb-4'>
+              <div className='bg-orange-500 rounded-lg w-8 h-8 flex items-center justify-center mr-3'>
+                <svg
+                  className='w-4 h-4 text-white'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M13 10V3L4 14h7v7l9-11h-7z'
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className='text-lg font-bold text-gray-900'>
+                  Optimized Route Preview
+                </h3>
+                <p className='text-sm text-gray-600'>
+                  New suggested delivery path
+                </p>
+              </div>
+            </div>
+
+            <div className='bg-orange-50 rounded-lg p-4'>
+              <h4 className='font-semibold text-orange-900 mb-2'>New Route:</h4>
+              <div className='flex flex-wrap items-center gap-2 text-sm'>
+                {reroutePreviewPath.map((point, i) => {
+                  const wh = wareHouseLocations.find(
+                    w =>
+                      Math.abs(w.coordinates[0] - point.lat) < 0.01 &&
+                      Math.abs(w.coordinates[1] - point.lng) < 0.01
+                  )
+                  return (
+                    <span key={i} className='flex items-center'>
+                      <span className='bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium'>
+                        {wh
+                          ? wh.district
+                          : `${point.lat.toFixed(2)},${point.lng.toFixed(2)}`}
+                      </span>
+                      {i < reroutePreviewPath.length - 1 && (
+                        <svg
+                          className='w-4 h-4 text-orange-500 mx-1'
+                          fill='none'
+                          stroke='currentColor'
+                          viewBox='0 0 24 24'
+                        >
+                          <path
+                            strokeLinecap='round'
+                            strokeLinejoin='round'
+                            strokeWidth={2}
+                            d='M9 5l7 7-7 7'
+                          />
+                        </svg>
+                      )}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
           </div>
         )}
+
+      {/* Cost Analysis */}
       {currentAStarPath && currentAStarPath.length > 1 && (
-        <div className='mb-2 flex flex-col items-center justify-center'>
-          <div className='bg-blue-100 rounded-lg px-4 py-2 shadow text-blue-900 font-mono text-base'>
-            <div>
-              <b>Current Route Cost</b>
+        <div className='card-walmart p-6'>
+          <div className='flex items-center mb-4'>
+            <div className='bg-[#0071ce] rounded-lg w-8 h-8 flex items-center justify-center mr-3'>
+              <svg
+                className='w-4 h-4 text-white'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1'
+                />
+              </svg>
             </div>
-            {lastRerouteCost && (
-              <>
-                <div className='text-xs text-blue-700 mb-1'>
-                  Rerouting Charges:
-                </div>
-                {!lastRerouteCost.isOnOriginalPath &&
-                  lastRerouteCost.partialCost &&
-                  lastRerouteCost.partialCost.total > 0 && (
-                    <>
-                      <div>
-                        Cost due to travel already made in original path
-                        (distance + warehouse):
-                      </div>
-                      <div>
-                        Distance:{' '}
-                        {safeNestedToFixed(lastRerouteCost, [
-                          'partialCost',
-                          'distance'
-                        ])}
-                        × ₹0.1 = ₹
-                        {safeNestedToFixed(lastRerouteCost, [
-                          'partialCost',
-                          'distanceCost'
-                        ])}
-                      </div>
-                      <div>
-                        Warehouses:{' '}
-                        {safeNestedToFixed(lastRerouteCost, [
-                          'partialCost',
-                          'distance'
-                        ])}
-                        × ₹10 = ₹
-                        {safeNestedToFixed(lastRerouteCost, [
-                          'partialCost',
-                          'warehouseCost'
-                        ])}
-                      </div>
-                      <div className='mb-1'>
-                        Subtotal: ₹
-                        {safeToFixed(
-                          (get(lastRerouteCost, [
-                            'partialCost',
-                            'distanceCost'
-                          ]) || 0) +
+            <div>
+              <h3 className='text-lg font-bold text-gray-900'>Cost Analysis</h3>
+              <p className='text-sm text-gray-600'>
+                Detailed breakdown of delivery costs
+              </p>
+            </div>
+          </div>
+
+          <div className='grid md:grid-cols-2 gap-6'>
+            {/* Current Route Cost */}
+            <div className='bg-blue-50 rounded-lg p-4'>
+              <h4 className='font-semibold text-blue-900 mb-3 flex items-center'>
+                <svg
+                  className='w-4 h-4 mr-2'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3'
+                  />
+                </svg>
+                Current Route Cost
+              </h4>
+              <div className='space-y-2 text-sm'>
+                {lastRerouteCost && (
+                  <>
+                    <div className='text-xs text-blue-700 font-medium'>
+                      Rerouting Charges:
+                    </div>
+                    {!lastRerouteCost.isOnOriginalPath &&
+                      lastRerouteCost.partialCost &&
+                      lastRerouteCost.partialCost.total > 0 && (
+                        <div className='text-xs text-blue-600'>
+                          Partial cost: ₹
+                          {safeToFixed(
                             (get(lastRerouteCost, [
+                              'partialCost',
+                              'distanceCost'
+                            ]) || 0) +
+                              (get(lastRerouteCost, [
+                                'partialCost',
+                                'warehouseCost'
+                              ]) || 0)
+                          )}
+                        </div>
+                      )}
+                    <div className='text-xs text-blue-600'>
+                      Reroute Penalty: ₹{lastRerouteCost.penalty}
+                    </div>
+                  </>
+                )}
+                <div className='flex justify-between'>
+                  <span>
+                    Distance ({safeToFixed(originalCost.distance)} km):
+                  </span>
+                  <span>₹{safeToFixed(originalCost.distanceCost)}</span>
+                </div>
+                <div className='flex justify-between'>
+                  <span>Warehouses ({currentAStarPath.length}):</span>
+                  <span>₹{safeToFixed(originalCost.warehouseCost)}</span>
+                </div>
+                <div className='border-t pt-2 font-bold text-blue-900'>
+                  <div className='flex justify-between'>
+                    <span>Total:</span>
+                    <span>
+                      ₹
+                      {lastRerouteCost
+                        ? lastRerouteCost.totalWithPenalty.toFixed(2)
+                        : originalCost.total.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Reroute Cost Preview */}
+            {showAcceptReroute && rerouteCost && (
+              <div className='bg-orange-50 rounded-lg p-4'>
+                <h4 className='font-semibold text-orange-900 mb-3 flex items-center'>
+                  <svg
+                    className='w-4 h-4 mr-2'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M13 10V3L4 14h7v7l9-11h-7z'
+                    />
+                  </svg>
+                  Optimized Route Cost
+                </h4>
+                <div className='space-y-2 text-sm'>
+                  {!rerouteCost.isOnOriginalPath &&
+                    rerouteCost.partialCost &&
+                    rerouteCost.partialCost.total > 0 && (
+                      <div className='text-xs text-orange-600'>
+                        Partial cost: ₹
+                        {safeToFixed(
+                          (get(rerouteCost, ['partialCost', 'distanceCost']) ||
+                            0) +
+                            (get(rerouteCost, [
                               'partialCost',
                               'warehouseCost'
                             ]) || 0)
                         )}
                       </div>
-                    </>
-                  )}
-                <div>Reroute Penalty: ₹{lastRerouteCost.penalty}</div>
-              </>
-            )}
-            <div>
-              Distance: {safeToFixed(originalCost.distance)} km × ₹0.1 = ₹
-              {safeToFixed(originalCost.distanceCost)}
-            </div>
-            <div>
-              Warehouses: {currentAStarPath.length} × ₹10 = ₹
-              {safeToFixed(originalCost.warehouseCost)}
-            </div>
-            <div className='font-bold'>
-              Total: ₹
-              {lastRerouteCost
-                ? lastRerouteCost.totalWithPenalty.toFixed(2)
-                : originalCost.total.toFixed(2)}
-            </div>
-          </div>
-        </div>
-      )}
-      {showAcceptReroute && rerouteCost && (
-        <div className='mb-2 flex flex-col items-center justify-center'>
-          <div className='bg-orange-100 rounded-lg px-4 py-2 shadow text-orange-900 font-mono text-base border border-orange-300'>
-            <div>
-              <b>Reroute Cost</b>
-            </div>
-            {!rerouteCost.isOnOriginalPath &&
-              rerouteCost.partialCost &&
-              rerouteCost.partialCost.total > 0 && (
-                <>
-                  <div className='text-xs text-orange-700 mb-1'>
-                    Cost due to travel already made in original path (distance +
-                    warehouse):
-                  </div>
-                  <div>
-                    Distance:{' '}
-                    {safeNestedToFixed(rerouteCost, [
-                      'partialCost',
-                      'distance'
-                    ])}
-                    km × ₹0.1 = ₹
-                    {safeNestedToFixed(rerouteCost, [
-                      'partialCost',
-                      'distanceCost'
-                    ])}
-                  </div>
-                  <div>
-                    Warehouses:{' '}
-                    {safeNestedToFixed(rerouteCost, [
-                      'partialCost',
-                      'distance'
-                    ])}
-                    × ₹10 = ₹
-                    {safeNestedToFixed(rerouteCost, [
-                      'partialCost',
-                      'warehouseCost'
-                    ])}
-                  </div>
-                  <div className='mb-1'>
-                    Subtotal: ₹
-                    {safeToFixed(
-                      (get(rerouteCost, ['partialCost', 'distanceCost']) || 0) +
-                        (get(rerouteCost, ['partialCost', 'warehouseCost']) ||
-                          0)
                     )}
+                  <div className='flex justify-between'>
+                    <span>
+                      Distance ({safeToFixed(rerouteCost.distance)} km):
+                    </span>
+                    <span>₹{safeToFixed(rerouteCost.distanceCost)}</span>
                   </div>
-                </>
-              )}
-            <div>
-              Distance: {safeToFixed(rerouteCost.distance)} km × ₹0.1 = ₹
-              {safeToFixed(rerouteCost.distanceCost)}
-            </div>
-            <div>
-              Warehouses: {safeToFixed(rerouteCost.distance)}× ₹10 = ₹
-              {safeToFixed(rerouteCost.warehouseCost)}
-            </div>
-            <div>Reroute Penalty: ₹{rerouteCost.penalty}</div>
-            <div className='font-bold'>
-              Total with Penalty: ₹{safeToFixed(rerouteCost.totalWithPenalty)}
-            </div>
-            <div className='text-xs mt-1'>
-              Additional cost: ₹{safeToFixed(rerouteCost.extraCost)}{' '}
-              {rerouteCost.extraCost <= 0 ? '(No extra distance)' : ''}
-            </div>
+                  <div className='flex justify-between'>
+                    <span>Warehouses:</span>
+                    <span>₹{safeToFixed(rerouteCost.warehouseCost)}</span>
+                  </div>
+                  <div className='flex justify-between text-xs text-orange-600'>
+                    <span>Reroute Penalty:</span>
+                    <span>₹{rerouteCost.penalty}</span>
+                  </div>
+                  <div className='border-t pt-2 font-bold text-orange-900'>
+                    <div className='flex justify-between'>
+                      <span>Total:</span>
+                      <span>₹{safeToFixed(rerouteCost.totalWithPenalty)}</span>
+                    </div>
+                  </div>
+                  <div className='text-xs text-orange-600'>
+                    {rerouteCost.extraCost <= 0
+                      ? 'No additional distance'
+                      : `+₹${safeToFixed(rerouteCost.extraCost)} extra`}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
-      {currentAStarPath && currentAStarPath.length > 1 && (
-        <div className='flex flex-wrap items-center justify-center mb-4 p-2 bg-blue-50 rounded-xl shadow text-blue-800 font-mono text-lg'>
-          {currentAStarPath.map((idx, i) => (
-            <span key={idx} className='flex items-center'>
-              {wareHouseLocations[idx].district}
-              {i < currentAStarPath.length - 1 && (
-                <span className='mx-2 text-blue-400'>&#8594;</span>
-              )}
-            </span>
-          ))}
-        </div>
-      )}
+
       {/* Map Container */}
-      <div
-        id='map'
-        className='w-full border-2 border-blue-200 rounded-xl shadow-lg mb-6'
-        style={{
-          height: '400px',
-          minWidth: '100%',
-          borderRadius: '16px'
-        }}
-      ></div>
-      {/* Progress Bar */}
-      <div className='w-full bg-gray-200 h-3 rounded-full mt-2'>
+      <div className='card-walmart p-6'>
+        <div className='flex items-center mb-4'>
+          <div className='bg-[#0071ce] rounded-lg w-8 h-8 flex items-center justify-center mr-3'>
+            <svg
+              className='w-4 h-4 text-white'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3'
+              />
+            </svg>
+          </div>
+          <div>
+            <h3 className='text-lg font-bold text-gray-900'>
+              Live Delivery Map
+            </h3>
+            <p className='text-sm text-gray-600'>
+              Real-time tracking and route visualization
+            </p>
+          </div>
+        </div>
+
         <div
-          className='bg-green-600 h-3 rounded-full transition-all duration-500'
-          style={{ width: `${progress}%` }}
+          id='map'
+          className='w-full rounded-xl shadow-lg overflow-hidden'
+          style={{
+            height: '500px',
+            minWidth: '100%'
+          }}
         ></div>
       </div>
-      <p className='text-xs text-gray-700 mt-1 text-center'>
-        Delivery Progress: {Math.floor(progress)}%
-      </p>
+
+      {/* Progress Tracking */}
+      <div className='card-walmart p-6'>
+        <div className='flex items-center justify-between mb-4'>
+          <div className='flex items-center'>
+            <div className='bg-[#0071ce] rounded-lg w-8 h-8 flex items-center justify-center mr-3'>
+              <svg
+                className='w-4 h-4 text-white'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M13 10V3L4 14h7v7l9-11h-7z'
+                />
+              </svg>
+            </div>
+            <div>
+              <h3 className='text-lg font-bold text-gray-900'>
+                Delivery Progress
+              </h3>
+              <p className='text-sm text-gray-600'>
+                Track your package in real-time
+              </p>
+            </div>
+          </div>
+          <div className='text-right'>
+            <div className='text-2xl font-bold text-[#0071ce]'>
+              {Math.floor(progress)}%
+            </div>
+            <div className='text-sm text-gray-600'>Complete</div>
+          </div>
+        </div>
+
+        <div className='progress-walmart'>
+          <div
+            className='progress-walmart-fill'
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+
+        <div className='flex justify-between text-sm text-gray-600 mt-2'>
+          <span>Order Placed</span>
+          <span>In Transit</span>
+          <span>Out for Delivery</span>
+          <span>Delivered</span>
+        </div>
+      </div>
     </div>
   )
 }
