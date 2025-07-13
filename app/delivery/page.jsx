@@ -14,6 +14,10 @@ export default function DeliveryPage () {
   const [item, setItem] = useState('item1')
   const [showMap, setShowMap] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  // Add delivery progress state
+  const [deliveryProgress, setDeliveryProgress] = useState(0)
+  // Add destination state to track current delivery destination
+  const [currentDestination, setCurrentDestination] = useState('')
 
   // Only initialize autocomplete after Google Maps script is loaded
   const handleScriptLoad = () => {
@@ -42,6 +46,7 @@ export default function DeliveryPage () {
     setIsLoading(true)
     setTimeout(() => {
       setShowMap(true)
+      setCurrentDestination(address) // Set initial destination
       setIsLoading(false)
     }, 1000)
   }
@@ -49,39 +54,44 @@ export default function DeliveryPage () {
   const popularItems = [
     {
       id: 'item1',
-      name: 'Electronics Bundle',
+      name: 'SoundCore Q20i',
       category: 'Electronics',
       price: '$299.99'
     },
     {
       id: 'item2',
-      name: 'Home & Garden Set',
+      name: 'Gardening Set',
       category: 'Home',
       price: '$149.99'
     },
     {
       id: 'item3',
-      name: 'Sports Equipment',
+      name: 'Badminton Set',
       category: 'Sports',
       price: '$89.99'
     },
     {
       id: 'item4',
-      name: 'Kitchen Essentials',
+      name: 'Dishwasher',
       category: 'Kitchen',
       price: '$199.99'
     },
     {
       id: 'item5',
-      name: 'Fashion Collection',
+      name: 'Saree',
       category: 'Fashion',
       price: '$179.99'
     },
-    { id: 'item6', name: 'Books & Media', category: 'Books', price: '$59.99' },
-    { id: 'item7', name: 'Toys & Games', category: 'Toys', price: '$79.99' },
+    {
+      id: 'item6',
+      name: 'One Piece Manga',
+      category: 'Books',
+      price: '$59.99'
+    },
+    { id: 'item7', name: 'Lego Marvel Set', category: 'Toys', price: '$79.99' },
     {
       id: 'item8',
-      name: 'Health & Beauty',
+      name: 'Dove Cosmetic Set',
       category: 'Health',
       price: '$129.99'
     },
@@ -91,7 +101,7 @@ export default function DeliveryPage () {
       category: 'Auto',
       price: '$249.99'
     },
-    { id: 'item10', name: 'Pet Supplies', category: 'Pets', price: '$99.99' }
+    { id: 'item10', name: 'Pet Carrier', category: 'Pets', price: '$99.99' }
   ]
 
   return (
@@ -125,11 +135,12 @@ export default function DeliveryPage () {
                 </div>
               </div>
               <h1 className='text-4xl md:text-5xl font-bold mb-4'>
-                AI-Powered Delivery Simulator
+                Smart Delivery Rerouting
               </h1>
               <p className='text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto'>
-                Experience the future of logistics with intelligent route
-                optimization and real-time delivery tracking
+                Experience next-generation logistics with intelligent rerouting,
+                powered by an intelligent pathfinding algorithm for optimal
+                delivery routes and real-time adjustments.
               </p>
               <div className='flex flex-wrap justify-center gap-4 text-sm'>
                 <div className='bg-white/20 rounded-full px-4 py-2 backdrop-blur-sm'>
@@ -139,7 +150,7 @@ export default function DeliveryPage () {
                   ⚡ Real-time Updates
                 </div>
                 <div className='bg-white/20 rounded-full px-4 py-2 backdrop-blur-sm'>
-                  🎯 AI Optimization
+                  🧭 A* Pathfinding
                 </div>
                 <div className='bg-white/20 rounded-full px-4 py-2 backdrop-blur-sm'>
                   📍 Live Tracking
@@ -363,10 +374,24 @@ export default function DeliveryPage () {
                       </div>
                       <div>
                         <h4 className='font-semibold text-gray-900'>
-                          Watch AI Route
+                          Watch the Routing
                         </h4>
                         <p className='text-gray-600 text-sm'>
                           Observe intelligent route optimization in real-time
+                        </p>
+                      </div>
+                    </div>
+                    <div className='flex items-start space-x-3'>
+                      <div className='bg-[#0071ce] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5'>
+                        4
+                      </div>
+                      <div>
+                        <h4 className='font-semibold text-gray-900'>
+                          Re-route the delivery
+                        </h4>
+                        <p className='text-gray-600 text-sm'>
+                          Watch the algorithm re-route the delivery to the new
+                          location
                         </p>
                       </div>
                     </div>
@@ -470,9 +495,11 @@ export default function DeliveryPage () {
                     </div>
                     <div className='text-center'>
                       <div className='text-2xl font-bold text-[#0071ce]'>
-                        24/7
+                        50%
                       </div>
-                      <div className='text-sm text-gray-600'>Monitoring</div>
+                      <div className='text-sm text-gray-600'>
+                        Increased Customer Retention
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -536,7 +563,9 @@ export default function DeliveryPage () {
                         Destination
                       </span>
                     </div>
-                    <p className='text-gray-700 text-sm truncate'>{address}</p>
+                    <p className='text-gray-700 text-sm truncate'>
+                      {currentDestination}
+                    </p>
                   </div>
                   <div className='bg-gray-50 rounded-lg p-4'>
                     <div className='flex items-center space-x-2 mb-2'>
@@ -557,7 +586,9 @@ export default function DeliveryPage () {
                         Status
                       </span>
                     </div>
-                    <p className='text-gray-700'>In Transit</p>
+                    <p className='text-gray-700'>
+                      {deliveryProgress === 100 ? 'Delivered' : 'In Transit'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -569,6 +600,8 @@ export default function DeliveryPage () {
                     userAddress={address}
                     userCoords={coords}
                     selectedItem={item}
+                    onProgressChange={setDeliveryProgress}
+                    onDestinationChange={setCurrentDestination}
                   />
                 </div>
               </div>

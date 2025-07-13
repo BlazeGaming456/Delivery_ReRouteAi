@@ -8,7 +8,9 @@ import getDistance from './StraightDistance'
 export default function MapComponent ({
   userAddress,
   userCoords,
-  selectedItem: selectedItemProp
+  selectedItem: selectedItemProp,
+  onProgressChange,
+  onDestinationChange
 }) {
   const [markers, setMarkers] = useState([])
   const [map, setMap] = useState(null)
@@ -435,6 +437,7 @@ export default function MapComponent ({
     // Reset animation state for new path
     animationIndexRef.current = 0
     setProgress(0)
+    if (onProgressChange) onProgressChange(0)
     setTruckPathIndex(0)
     setIsPaused(false) // Resume animation with new path
     // Find new start and end warehouse based on reroutePreviewPath
@@ -471,6 +474,11 @@ export default function MapComponent ({
     // Store the last reroute cost details for display in blue box
     if (rerouteCost) setLastRerouteCost(rerouteCost)
     else setLastRerouteCost(null)
+
+    // Update the destination in the parent component
+    if (onDestinationChange && rerouteInput) {
+      onDestinationChange(rerouteInput)
+    }
   }
 
   const handleCancelReroute = () => {
@@ -489,7 +497,9 @@ export default function MapComponent ({
           return
         }
         truckMarker.setPosition(deliveryPath[index])
-        setProgress(((index + 1) / deliveryPath.length) * 100)
+        const newProgress = ((index + 1) / deliveryPath.length) * 100
+        setProgress(newProgress)
+        if (onProgressChange) onProgressChange(newProgress)
         animationIndexRef.current = index
         index++
       }, 1000)
@@ -698,7 +708,9 @@ export default function MapComponent ({
         return
       }
       marker.setPosition(deliveryPath[index])
-      setProgress(((index + 1) / deliveryPath.length) * 100)
+      const newProgress = ((index + 1) / deliveryPath.length) * 100
+      setProgress(newProgress)
+      if (onProgressChange) onProgressChange(newProgress)
       animationIndexRef.current = index
       setTruckPathIndex(index)
       index++
@@ -748,6 +760,7 @@ export default function MapComponent ({
     animatedPath.push(warehouseCoords[warehouseCoords.length - 1])
     setDeliveryPath(animatedPath)
     setProgress(0)
+    if (onProgressChange) onProgressChange(0)
     // Do NOT draw a polyline for this path.
     if (routePolyline) routePolyline.setMap(null)
   }, [currentAStarPath])
@@ -1704,7 +1717,9 @@ export default function MapComponent ({
             <div className='text-2xl font-bold text-[#0071ce]'>
               {Math.floor(progress)}%
             </div>
-            <div className='text-sm text-gray-600'>Complete</div>
+            <p className='text-gray-700'>
+              {progress >= 100 ? 'Delivered' : 'In Transit'}
+            </p>
           </div>
         </div>
 
