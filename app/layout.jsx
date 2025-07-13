@@ -164,7 +164,7 @@ export default function RootLayout ({ children }) {
                   </li>
                   <li>
                     <a
-                      href='#'
+                      href='https://github.com/saisathwik1729'
                       target='_blank'
                       rel='noopener noreferrer'
                       className='text-gray-300 hover:text-white transition-colors flex items-center'
@@ -181,7 +181,7 @@ export default function RootLayout ({ children }) {
                   </li>
                   <li>
                     <a
-                      href='#'
+                      href='https://github.com/Bhavyakesini'
                       target='_blank'
                       rel='noopener noreferrer'
                       className='text-gray-300 hover:text-white transition-colors flex items-center'
