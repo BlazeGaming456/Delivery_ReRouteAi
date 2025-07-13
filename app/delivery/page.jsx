@@ -134,9 +134,12 @@ export default function DeliveryPage () {
                   </svg>
                 </div>
               </div>
-              <h1 className='text-4xl md:text-5xl font-bold mb-4'>
+              <h1 className='text-4xl md:text-5xl font-bold mb-2'>
                 Smart Delivery Rerouting
               </h1>
+              <p className='text-lg md:text-xl text-blue-200 mb-4 italic'>
+                Reroute to Efficiency
+              </p>
               <p className='text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto'>
                 Experience next-generation logistics with intelligent rerouting,
                 powered by an intelligent pathfinding algorithm for optimal
