@@ -8,12 +8,16 @@ Built by Team InnovateX -
 2. Sai Sathwik - https://github.com/saisathwik1729
 3. Alavala Bhavya Kesini - https://github.com/bhavyakesini
 
+You visit the website at - https://delivery-re-route-ai.vercel.app/
+
+You can see the Walmart Sparkothon Submission Video at - 
+
 ## 📷 Screenshots -
 
-![Screenshot 1](/screenshot_1.png)
-![Screenshot 2](/screenshot_2.png)
-![Screenshot 3](/screenshot_3.png)
-![Screenshot 4](/screenshot_4.png)
+![Screenshot 1](/public/screenshot_1.png)
+![Screenshot 2](/public/screenshot_2.png)
+![Screenshot 3](/public/screenshot_3.png)
+![Screenshot 4](/public/screenshot_4.png)
 
 ## 🌟 Overview
 
