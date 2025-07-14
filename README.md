@@ -3,15 +3,20 @@
 > **Built for Walmart Sparkothon**  
 > Revolutionizing delivery logistics with intelligent route optimization, real-time tracking and re-routing
 
+Built by Team InnovateX -
+1. Ajin Chundakkattu Raju - https://github.com/BlazeGaming456
+2. Sai Sathwik - https://github.com/saisathwik1729
+3. Alavala Bhavya Kesini - https://github.com/bhavyakesini
+
 ## 📷 Screenshots -
 
-!(screenshot_1.png)
+(screenshot_1.png)
 
-!(screenshot_2.png)
+(screenshot_2.png)
 
-!(screenshot_3.png)
+(screenshot_3.png)
 
-!(screenshot_4.png)
+(screenshot_4.png)
 
 ## 🌟 Overview
 
