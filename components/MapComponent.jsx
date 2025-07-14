@@ -18,10 +18,10 @@ export default function MapComponent ({
   const [truckMarker, setTruckMarker] = useState(null)
   const [progress, setProgress] = useState(0)
   const [deliveryPath, setDeliveryPath] = useState([]) //list of lat/lngs to follow
-  // State for polyline reference
+  //State for polyline reference
   const [routePolyline, setRoutePolyline] = useState(null)
 
-  // Add reroute states
+  //Add reroute states
   const [rerouteInput, setRerouteInput] = useState('')
   const [reroutePreviewPath, setReroutePreviewPath] = useState([])
   const [reroutePolyline, setReroutePolyline] = useState(null)
@@ -30,7 +30,6 @@ export default function MapComponent ({
   const [rerouteLatLng, setRerouteLatLng] = useState(null)
   const [isPaused, setIsPaused] = useState(false)
   const [animationInterval, setAnimationInterval] = useState(null)
-  // If selectedItemProp is provided, use it as the selected item
   const [selectedItem, setSelectedItem] = useState(selectedItemProp || 'item1')
   const [directionsRenderer, setDirectionsRenderer] = useState(null)
   const [reroutePreviewLabel, setReroutePreviewLabel] = useState('')
@@ -138,11 +137,12 @@ export default function MapComponent ({
     }
   ]
 
+  //Display warehouse markers on the map
   const displayWarehouses = map => {
     //Custom icon for warehouse markers
     const warehouseIcon = {
-      url: '/warehouse.png', // Path to your custom icon
-      scaledSize: new google.maps.Size(20, 20) // Adjust size as neede
+      url: '/warehouse.png',
+      scaledSize: new google.maps.Size(20, 20)
     }
 
     wareHouseLocations.forEach(location => {
@@ -166,6 +166,7 @@ export default function MapComponent ({
     })
   }
 
+  //Interpolate points between two points for the truck icon animation
   function interpolatePoints (start, end, parts) {
     const latStep = (end.lat - start.lat) / (parts + 1)
     const lngStep = (end.lng - start.lng) / (parts + 1)
@@ -181,18 +182,16 @@ export default function MapComponent ({
     return points
   }
 
-  // Helper: interpolatePoints (already present)
-  // Helper: get next warehouse index
+  //Helper: get next warehouse index
   function getNextWarehouseIndex (path, progress) {
-    // Each segment is 4 points (start + 3 steps), so find which warehouse the truck is heading to
+    //Each segment is 4 points (start + 3 steps), so find which warehouse the truck is heading to
     const totalSteps = (path.length - 1) * 4
     const currentStep = Math.floor((progress / 100) * totalSteps)
-    // Find which segment (warehouse-to-warehouse) we're in
     const segment = Math.floor(currentStep / 4)
-    return Math.min(segment + 1, path.length - 1) // next warehouse index in path
+    return Math.min(segment + 1, path.length - 1)
   }
 
-  // Reroute logic
+  //Reroute logic
   const handleReroutePreview = async () => {
     if (progress >= 90) {
       alert('Rerouting not allowed after 90% delivery.')
@@ -202,9 +201,9 @@ export default function MapComponent ({
       alert('Please select a reroute destination from suggestions.')
       return
     }
-    setIsPaused(true) // Pause animation
+    setIsPaused(true)
 
-    // 1. Find the nearest warehouse to the reroute destination (this is the new delivery endpoint)
+    //1. Finding the nearest warehouse to the reroute destination
     let minDistDest = Infinity
     let nearestToDest = null
     wareHouseLocations.forEach(wh => {
@@ -225,13 +224,13 @@ export default function MapComponent ({
       return
     }
 
-    // 2. Determine reroute start warehouse index
+    //2. Determining reroute start warehouse index
     const segment = Math.floor(truckPathIndex / 4)
     const atWarehouse = truckPathIndex % 4 === 0
-    // Always use the next warehouse if not at a warehouse
+    //Uuse the next warehouse if not at a warehouse
     const rerouteStartIdx = atWarehouse ? segment : segment + 1
 
-    // 3. Check if the new destination is already in the remaining path
+    //3. Check if the new destination is already in the remaining path
     let remainingPath = currentAStarPath
       ? currentAStarPath.slice(rerouteStartIdx)
       : []
@@ -242,13 +241,12 @@ export default function MapComponent ({
     )
     const destInPathIdx = remainingPath.indexOf(destIdx)
     if (destInPathIdx !== -1) {
-      // Destination is in the remaining path
-      // Build new path: from rerouteStartIdx to the destination warehouse
+      //Destination is in the remaining path
       const newAStarPath = currentAStarPath.slice(
         rerouteStartIdx,
         rerouteStartIdx + destInPathIdx + 1
       )
-      // Interpolate deliveryPath for animation
+      //Interpolate deliveryPath for animation
       let animatedPath = []
       for (let i = 0; i < newAStarPath.length - 1; i++) {
         const start = wareHouseLocations[newAStarPath[i]]
@@ -278,7 +276,7 @@ export default function MapComponent ({
         }`
       )
       setShowAcceptReroute(true)
-      // No reroute penalty, cost is for remaining path only
+      //No reroute penalty, cost is for remaining path only
       setRerouteCost({
         distance: calculatePathDistance(animatedPath),
         warehouseCount: newAStarPath.length,
@@ -303,7 +301,7 @@ export default function MapComponent ({
         const poly = new window.google.maps.Polyline({
           path: animatedPath,
           geodesic: true,
-          strokeColor: '#FFA500', // orange
+          strokeColor: '#FFA500',
           strokeOpacity: 1.0,
           strokeWeight: 4,
           map: map
@@ -313,8 +311,7 @@ export default function MapComponent ({
       return
     }
 
-    // 4. If not in path, compare next checkpoint vs nearest warehouse with item
-    // Find original start warehouse with the item
+    //4. If not in path, compare next checkpoint vs nearest warehouse with item
     const originalStartIdx = currentAStarPath ? currentAStarPath[0] : null
     const originalStartWarehouse =
       originalStartIdx !== null ? wareHouseLocations[originalStartIdx] : null
@@ -323,7 +320,7 @@ export default function MapComponent ({
       originalStartWarehouse.inventory &&
       originalStartWarehouse.inventory.includes(selectedItem)
 
-    // Find truck's next warehouse with the item
+    //Find truck's next warehouse with the item
     let nextWarehouseWithItem = null
     if (currentAStarPath && rerouteStartIdx < currentAStarPath.length - 1) {
       for (let i = rerouteStartIdx + 1; i < currentAStarPath.length; i++) {
@@ -334,7 +331,7 @@ export default function MapComponent ({
         }
       }
     }
-    // If not found, fallback to nearest warehouse with item from truck's current position
+    //If not found, fallback to nearest warehouse with item from truck's current position
     if (!nextWarehouseWithItem) {
       const truckPos = deliveryPath[truckPathIndex] || deliveryPath[0]
       let minDistItem = Infinity
@@ -354,9 +351,9 @@ export default function MapComponent ({
       })
     }
 
-    // Calculate both distances
+    //Calculate both distances
     let options = []
-    // Option 1: from rerouteStartIdx warehouse
+    //i. From rerouteStartIdx warehouse
     if (currentAStarPath && rerouteStartIdx < currentAStarPath.length) {
       const wh = wareHouseLocations[currentAStarPath[rerouteStartIdx]]
       options.push({
@@ -371,7 +368,7 @@ export default function MapComponent ({
         type: 'from-next'
       })
     }
-    // Option 2: from nearest warehouse with item
+    //ii. From nearest warehouse with item
     if (nextWarehouseWithItem) {
       options.push({
         start: nextWarehouseWithItem,
@@ -390,11 +387,11 @@ export default function MapComponent ({
       setIsPaused(false)
       return
     }
-    // Pick the shortest
+    //Picking the shortest
     options.sort((a, b) => a.distance - b.distance)
     const best = options[0]
 
-    // Build reroute path and label
+    //Building reroute path and label
     const bestPath = [
       {
         lat: best.start.coordinates[0],
@@ -419,7 +416,7 @@ export default function MapComponent ({
       const poly = new window.google.maps.Polyline({
         path: bestPath,
         geodesic: true,
-        strokeColor: '#FFA500', // orange
+        strokeColor: '#FFA500',
         strokeOpacity: 1.0,
         strokeWeight: 4,
         map: map
@@ -431,18 +428,19 @@ export default function MapComponent ({
   const handleAcceptReroute = () => {
     setDeliveryPath(reroutePreviewPath)
     if (reroutePolyline) reroutePolyline.setMap(null)
-    if (routePolyline) routePolyline.setMap(null) // Remove old path
+    if (routePolyline) routePolyline.setMap(null) //Removing old path
     setReroutePreviewPath([])
     setShowAcceptReroute(false)
-    // Reset animation state for new path
+    //Reset animation state for new path
     animationIndexRef.current = 0
     setProgress(0)
     if (onProgressChange) onProgressChange(0)
     setTruckPathIndex(0)
-    setIsPaused(false) // Resume animation with new path
-    // Find new start and end warehouse based on reroutePreviewPath
+    setIsPaused(false) //Resume animation with new path
+
+    //Find new start and end warehouse based on reroutePreviewPath
     if (reroutePreviewPath.length === 2) {
-      // Find nearest warehouse objects for start and end
+      //Find nearest warehouse objects for start and end
       const start = reroutePreviewPath[0]
       const end = reroutePreviewPath[1]
       let startWarehouse = null
@@ -464,18 +462,18 @@ export default function MapComponent ({
       if (startWarehouse && endWarehouse) {
         setOriDest({ startWarehouse, endWarehouse })
       } else {
-        // fallback: just use lat/lng
         setOriDest({
           startWarehouse: { coordinates: [start.lat, start.lng] },
           endWarehouse: { coordinates: [end.lat, end.lng] }
         })
       }
     }
-    // Store the last reroute cost details for display in blue box
+
+    //Store the last reroute cost details for display in blue box
     if (rerouteCost) setLastRerouteCost(rerouteCost)
     else setLastRerouteCost(null)
 
-    // Update the destination in the parent component
+    //Update the destination in the parent component
     if (onDestinationChange && rerouteInput) {
       onDestinationChange(rerouteInput)
     }
@@ -485,8 +483,8 @@ export default function MapComponent ({
     if (reroutePolyline) reroutePolyline.setMap(null)
     setReroutePreviewPath([])
     setShowAcceptReroute(false)
-    setIsPaused(false) // Resume animation with original path
-    // Resume from current animation index
+    setIsPaused(false) //Resume animation with original path
+    //Resume from current animation index
     if (animationInterval) clearInterval(animationInterval)
     if (map && deliveryPath.length > 0 && truckMarker) {
       let index = animationIndexRef.current
@@ -507,15 +505,11 @@ export default function MapComponent ({
     }
   }
 
-  // Track the current A* path in state for reroute logic
+  //Track the current A* path in state for reroute logic
   const [currentAStarPath, setCurrentAStarPath] = useState([])
-  const [currentStepIndex, setCurrentStepIndex] = useState(0) // Track current step index
+  const [currentStepIndex, setCurrentStepIndex] = useState(0) //Track current step index
 
-  // In displayAStarPath, update currentAStarPath
-  // Remove the displayAStarPath function and any calls to it.
-  // Remove any code that creates a google.maps.Polyline with strokeColor: '#FF0000'.
-  // Only keep DirectionsRenderer for the main route and orange Polyline for reroute preview.
-
+  //Waiting for response from the Google Maps API to initialize the map
   useEffect(() => {
     if (typeof window === 'undefined') return
 
@@ -540,7 +534,7 @@ export default function MapComponent ({
     }
   }, [])
 
-  // Define initMap on window so Google Maps can call it
+  //Define initMap on window so Google Maps can call it
   const initMap = () => {
     const google = window.google
     const map = new google.maps.Map(document.getElementById('map'), {
@@ -548,10 +542,6 @@ export default function MapComponent ({
       zoom: 8
     })
 
-    //Having only one marker instead of multiple
-    //Remove this if you want to add multiple markers
-
-    //Setting the map to the state
     setMap(map)
     displayWarehouses(map)
 
@@ -559,13 +549,13 @@ export default function MapComponent ({
     const destinationIcon = {
       path: window.google.maps.SymbolPath.CIRCLE,
       scale: 10,
-      fillColor: '#4285F4', // Blue
+      fillColor: '#4285F4',
       fillOpacity: 1,
       strokeWeight: 2,
       strokeColor: '#ffffff'
     }
 
-    // Place destination marker if oriDest is set
+    //Place destination marker if oriDest is set
     if (oriDest && oriDest.endWarehouse) {
       new window.google.maps.Marker({
         position: {
@@ -585,12 +575,10 @@ export default function MapComponent ({
     autocomplete.addListener('place_changed', async () => {
       const place = autocomplete.getPlace()
       if (!place.geometry || !place.geometry.location) {
-        // User entered the name of a Place that was not suggested
         window.alert("No details available for input: '" + place.name + "'")
         return
       }
 
-      // If the place has a geometry, then present it on a map.
       if (place.geometry.viewport) {
         map.fitBounds(place.geometry.viewport)
       } else {
@@ -607,7 +595,7 @@ export default function MapComponent ({
         title: place.name
       })
 
-      // Add the marker to the markers array
+      //Add the marker to the markers array
       setMarkers([...markers, marker])
 
       let nearestWarehouse = null
@@ -635,7 +623,7 @@ export default function MapComponent ({
     // }
   }
 
-  // Update extractPathAndCheckpoints to draw a custom polyline and remove old one
+  //Update extractPathAndCheckpoints to draw a custom polyline and remove old one
   const extractPathAndCheckpoints = (result, wareHouseLocations, path) => {
     const fullPath = []
     for (let i = 0; i < path.length - 1; i++) {
@@ -647,10 +635,10 @@ export default function MapComponent ({
         lat: wareHouseLocations[path[i + 1]].coordinates[0],
         lng: wareHouseLocations[path[i + 1]].coordinates[1]
       }
-      const segment = interpolatePoints(start, end, 3) // 3 steps per segment
+      const segment = interpolatePoints(start, end, 3) //3 steps per segment
       fullPath.push(start, ...segment)
     }
-    // Add the last warehouse
+    //Add the last warehouse
     if (path.length > 0) {
       const last = {
         lat: wareHouseLocations[path[path.length - 1]].coordinates[0],
@@ -661,11 +649,11 @@ export default function MapComponent ({
 
     setDeliveryPath(fullPath)
 
-    // Remove old polyline if exists
+    //Remove old polyline if exists
     if (routePolyline) {
       routePolyline.setMap(null)
     }
-    // Draw new polyline
+    //Draw new polyline
     if (window.google && window.google.maps && fullPath.length > 1 && map) {
       const polyline = new window.google.maps.Polyline({
         path: fullPath,
@@ -679,8 +667,8 @@ export default function MapComponent ({
     }
   }
 
-  // Truck animation and progress tracking
-  const animationIndexRef = useRef(0) // Track current animation index
+  //Truck animation and progress tracking
+  const animationIndexRef = useRef(0) //Track current animation index
 
   useEffect(() => {
     if (!map || deliveryPath.length === 0 || isPaused) return
@@ -700,7 +688,7 @@ export default function MapComponent ({
     }
 
     let index = animationIndexRef.current || 0
-    setTruckPathIndex(index) // Set initial
+    setTruckPathIndex(index) //Set initial
     const interval = setInterval(() => {
       if (index >= deliveryPath.length) {
         clearInterval(interval)
@@ -720,7 +708,7 @@ export default function MapComponent ({
     return () => clearInterval(interval)
   }, [map, deliveryPath, isPaused])
 
-  // Update the effect that draws the A* route
+  //Update the effect that draws the A* route
   useEffect(() => {
     if (!oriDest || !map) return
     if (
@@ -741,10 +729,10 @@ export default function MapComponent ({
     }
   }, [oriDest, map])
 
-  // When currentAStarPath changes, build the full path with 3 interpolated steps per segment, and animate the truck along this path, but do NOT draw a polyline for this path.
+  //When currentAStarPath changes, build the full path with 3 interpolated steps per segment, and animate the truck along this path, but do NOT draw a polyline for this path.
   useEffect(() => {
     if (!currentAStarPath) return
-    // If the path is trivial (start and end are the same), set progress to 100%
+    //If the path is trivial (start and end are the same), set progress to 100%
     if (currentAStarPath.length === 1) {
       setProgress(100)
       if (onProgressChange) onProgressChange(100)
@@ -757,12 +745,12 @@ export default function MapComponent ({
       return
     }
     if (currentAStarPath.length < 2) return
-    // Build warehouse coordinates array
+    //Building warehouse coordinates array
     const warehouseCoords = currentAStarPath.map(idx => ({
       lat: wareHouseLocations[idx].coordinates[0],
       lng: wareHouseLocations[idx].coordinates[1]
     }))
-    // Interpolate 3 steps per segment
+    //Interpolate 3 steps per segment
     let animatedPath = []
     for (let i = 0; i < warehouseCoords.length - 1; i++) {
       const start = warehouseCoords[i]
@@ -774,11 +762,10 @@ export default function MapComponent ({
     setDeliveryPath(animatedPath)
     setProgress(0)
     if (onProgressChange) onProgressChange(0)
-    // Do NOT draw a polyline for this path.
     if (routePolyline) routePolyline.setMap(null)
   }, [currentAStarPath])
 
-  // Defensive Autocomplete initialization for reroute input
+  //Autocomplete initialization for reroute input
   useEffect(() => {
     if (!window.google) return
     const input = rerouteInputRef.current
@@ -797,7 +784,7 @@ export default function MapComponent ({
     }
   }, [rerouteInputRef.current])
 
-  // In the autocomplete for the main search box, after a place is selected, find the nearest warehouse with the item (start) and the nearest warehouse to the user (end), and route from start to end.
+  //In the autocomplete for the main search box, after a place is selected, finding the nearest warehouse with the item (start) and the nearest warehouse to the user (end), and route from start to end.
   useEffect(() => {
     if (!window.google || !map) return
     const input = document.getElementById('search-box')
@@ -812,7 +799,7 @@ export default function MapComponent ({
       }
       const userLat = place.geometry.location.lat()
       const userLng = place.geometry.location.lng()
-      // Find the nearest warehouse to the user (end)
+      //Find the nearest warehouse to the user (end)
       let minDistEnd = Infinity
       let nearestToUser = null
       wareHouseLocations.forEach(warehouse => {
@@ -823,7 +810,7 @@ export default function MapComponent ({
           nearestToUser = warehouse
         }
       })
-      // Find the nearest warehouse to the user that contains the item (start)
+      //Find the nearest warehouse to the user that contains the item (start)
       let minDistStart = Infinity
       let nearestWithItem = null
       wareHouseLocations.forEach(warehouse => {
@@ -840,7 +827,7 @@ export default function MapComponent ({
         window.alert(`No warehouse found with ${selectedItem}.`)
         return
       }
-      // Route from nearestWithItem to nearestToUser
+      //Route from nearestWithItem to nearestToUser
       setOriDest({
         startWarehouse: nearestWithItem,
         endWarehouse: nearestToUser
@@ -855,7 +842,6 @@ export default function MapComponent ({
     })
   }, [map, deliveryPath, selectedItem])
 
-  // Update the effect that draws the route to use startWarehouse and endWarehouse
   useEffect(() => {
     if (!oriDest || !map) return
     if (oriDest.startWarehouse && oriDest.endWarehouse) {
@@ -868,7 +854,6 @@ export default function MapComponent ({
         lng: oriDest.endWarehouse.coordinates[1]
       }
       if (window.google && window.google.maps) {
-        // Remove previous DirectionsRenderer
         if (directionsRenderer) directionsRenderer.setMap(null)
         const newDirectionsRenderer = new window.google.maps.DirectionsRenderer(
           {
@@ -887,7 +872,6 @@ export default function MapComponent ({
           (result, status) => {
             if (status === 'OK') {
               newDirectionsRenderer.setDirections(result)
-              // Use currentAStarPath for animation if available
               let warehouseCoords = []
               if (currentAStarPath && currentAStarPath.length > 1) {
                 warehouseCoords = currentAStarPath.map(idx => ({
@@ -908,7 +892,6 @@ export default function MapComponent ({
                   lng: oriDest.endWarehouse.coordinates[1]
                 })
               }
-              // Interpolate 3 steps per segment
               let animatedPath = []
               for (let i = 0; i < warehouseCoords.length - 1; i++) {
                 const start = warehouseCoords[i]
@@ -917,8 +900,6 @@ export default function MapComponent ({
                 animatedPath.push(...interpolatePoints(start, end, 3))
               }
               animatedPath.push(warehouseCoords[warehouseCoords.length - 1])
-              // In the DirectionsRenderer callback (status === 'OK'), remove setDeliveryPath(animatedPath) and setProgress(0). Only add markers, do not touch deliveryPath here.
-              // Add custom start marker (warehouse)
               new window.google.maps.Marker({
                 position: origin,
                 map: map,
@@ -928,7 +909,6 @@ export default function MapComponent ({
                   scaledSize: new window.google.maps.Size(20, 20)
                 }
               })
-              // Add custom destination marker (user)
               new window.google.maps.Marker({
                 position: destination,
                 map: map,
@@ -951,10 +931,10 @@ export default function MapComponent ({
     }
   }, [oriDest, map])
 
-  // If userCoords is provided, trigger delivery logic on mount
+  //If userCoords is provided, trigger delivery logic on mount
   useEffect(() => {
     if (userCoords && selectedItemProp) {
-      // Find the nearest warehouse to the user (end)
+      //Find the nearest warehouse to the user (end)
       let minDistEnd = Infinity
       let nearestToUser = null
       wareHouseLocations.forEach(warehouse => {
@@ -967,7 +947,7 @@ export default function MapComponent ({
           nearestToUser = warehouse
         }
       })
-      // Find the nearest warehouse to the user that contains the item (start)
+      //Find the nearest warehouse to the user that contains the item (start)
       let minDistStart = Infinity
       let nearestWithItem = null
       wareHouseLocations.forEach(warehouse => {
@@ -989,7 +969,7 @@ export default function MapComponent ({
         window.alert(`No warehouse found with ${selectedItemProp}.`)
         return
       }
-      // Route from nearestWithItem to nearestToUser
+      //Route from nearestWithItem to nearestToUser
       setOriDest({
         startWarehouse: nearestWithItem,
         endWarehouse: nearestToUser
@@ -997,7 +977,7 @@ export default function MapComponent ({
     }
   }, [userCoords, selectedItemProp])
 
-  // Helper to calculate distance between two points
+  //Helper to calculate distance between two points
   function getDistanceKm (a, b) {
     const R = 6371
     const dLat = ((b.lat - a.lat) * Math.PI) / 180
@@ -1011,7 +991,7 @@ export default function MapComponent ({
     return R * c
   }
 
-  // Cost calculation for a path (array of warehouse indices)
+  //Cost calculation for a path (array of warehouse indices)
   function calculatePathCost (pathIdxArr, warehouseList) {
     if (!pathIdxArr || pathIdxArr.length < 2)
       return { distance: 0, warehouseCost: 0, total: 0 }
@@ -1030,18 +1010,15 @@ export default function MapComponent ({
     return { distance, warehouseCost, distanceCost, total }
   }
 
-  // State for reroute cost
   const [rerouteCost, setRerouteCost] = useState(null)
 
-  // Add state to track last reroute cost details
   const [lastRerouteCost, setLastRerouteCost] = useState(null)
 
-  // Calculate and display cost for the current path
   const originalCost = calculatePathCost(currentAStarPath, wareHouseLocations)
 
-  // Helper to get the index of the truck's current position in the A* path
+  //Helper to get the index of the truck's current position in the A* path
   function getCurrentWarehouseIndex () {
-    // Find the closest warehouse index in currentAStarPath to the truck's current position
+    //Find the closest warehouse index in currentAStarPath to the truck's current position
     if (
       !deliveryPath ||
       deliveryPath.length === 0 ||
@@ -1049,15 +1026,15 @@ export default function MapComponent ({
       currentAStarPath.length === 0
     )
       return 0
-    // Find the closest point in deliveryPath to the truckMarker's position
+    //Find the closest point in deliveryPath to the truckMarker's position
     let truckPos = null
     if (truckMarker) {
       const pos = truckMarker.getPosition()
       if (pos) truckPos = { lat: pos.lat(), lng: pos.lng() }
     }
-    // If no marker, assume at start
+    //If no marker, assume at start
     if (!truckPos) return 0
-    // Find the closest warehouse index
+    //Find the closest warehouse index
     let minDist = Infinity
     let closestIdx = 0
     currentAStarPath.forEach((idx, i) => {
@@ -1074,7 +1051,7 @@ export default function MapComponent ({
     return closestIdx
   }
 
-  // When reroutePreviewPath is set, calculate reroute cost
+  //When reroutePreviewPath is set, calculate reroute cost
   useEffect(() => {
     if (
       showAcceptReroute &&
@@ -1103,7 +1080,7 @@ export default function MapComponent ({
         total: 0
       }
       if (!isOnOriginalPath) {
-        // Calculate cost for the portion already traveled
+        //Calculate cost for the portion already traveled
         const currentIdx = getCurrentWarehouseIndex()
         const traveledPath = currentAStarPath.slice(0, currentIdx + 1)
         partialCost = calculatePathCost(traveledPath, wareHouseLocations)
@@ -1132,7 +1109,7 @@ export default function MapComponent ({
     truckMarker
   ])
 
-  // Helper to calculate total distance of a path
+  //Helper to calculate total distance of a path
   function calculatePathDistance (path) {
     let dist = 0
     for (let i = 0; i < path.length - 1; i++) {
@@ -1146,12 +1123,12 @@ export default function MapComponent ({
     return dist
   }
 
-  // Helper to safely format numbers
+  //Helper to safely format numbers
   function safeToFixed (val, digits = 2) {
     return typeof val === 'number' && !isNaN(val) ? val.toFixed(digits) : 'N/A'
   }
 
-  // Helper to safely format nested numbers
+  //Helper to safely format nested numbers
   function safeNestedToFixed (obj, path, digits = 2) {
     try {
       let val = obj
@@ -1167,7 +1144,7 @@ export default function MapComponent ({
     }
   }
 
-  // Helper to safely get nested property
+  //Helper to safely get nested property
   function get (obj, path) {
     return path.reduce(
       (acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined),

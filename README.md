@@ -1,68 +1,33 @@
-# 🚚 Walmart Express - AI-Powered Delivery Simulator
+# 🚚 Walmart Flex - AI-Powered Delivery Simulator
 
 > **Built for Walmart Sparkothon**  
-> Revolutionizing delivery logistics with intelligent route optimization and real-time tracking
+> Revolutionizing delivery logistics with intelligent route optimization, real-time tracking and re-routing
 
-![Walmart Express Demo](https://img.shields.io/badge/Walmart-Sparkothon-blue?style=for-the-badge&logo=walmart)
-![Next.js](https://img.shields.io/badge/Next.js-15.3.5-black?style=for-the-badge&logo=next.js)
-![React](https://img.shields.io/badge/React-19.0.0-blue?style=for-the-badge&logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.1.11-38B2AC?style=for-the-badge&logo=tailwind-css)
+## 📷 Screenshots -
+
+!(screenshot_1.png)
+
+!(screenshot_2.png)
+
+!(screenshot_3.png)
+
+!(screenshot_4.png)
 
 ## 🌟 Overview
 
-Walmart Express is a cutting-edge delivery simulation platform that demonstrates the future of logistics through AI-powered route optimization. Built specifically for the Walmart Sparkothon, this application showcases how intelligent algorithms can revolutionize delivery efficiency, reduce costs, and enhance customer experience.
+Walmart Flex is a cutting-edge delivery simulation platform that demonstrates the future of logistics through alogrithm-powered route optimization and re-routing.
+This helps to retain customers who othrwise might not re-order dure to the additional cost, time required or the hassle.
+Built specifically for the Walmart Sparkothon, this application showcases how intelligent algorithms can revolutionize delivery efficiency, reduce costs, and enhance customer experience.
 
 ### 🎯 Key Features
 
-- **🤖 AI-Powered Route Optimization**: Advanced A\* pathfinding algorithm for optimal delivery routes
+- **🤖 AI-Powered Route Optimization**: Advanced path-finding algorithm for optimal delivery routes
 - **⚡ Real-time Rerouting**: Dynamic route modification during delivery with cost analysis
 - **📍 Live GPS Tracking**: Interactive map with real-time truck movement simulation
 - **💰 Cost Optimization**: Intelligent cost calculation with warehouse and distance factors
-- **🏢 Multi-Warehouse Network**: 14 strategic warehouse locations across Kerala
+- **🏢 Multi-Warehouse Network**: 14 strategic warehouse locations across Kerala (and India soon!)
 - **📊 Performance Analytics**: Detailed cost breakdown and route efficiency metrics
 - **🎨 Modern UI/UX**: Beautiful, responsive design inspired by Walmart's brand
-
-## 🚀 Technology Stack
-
-### Frontend
-
-- **Next.js 15.3.5** - React framework with App Router
-- **React 19.0.0** - Latest React with concurrent features
-- **Tailwind CSS 4.1.11** - Utility-first CSS framework
-- **Google Maps API** - Interactive mapping and geolocation
-
-### Backend & Algorithms
-
-- **A\* Pathfinding Algorithm** - Optimal route calculation
-- **Graph Theory** - Warehouse network modeling
-- **Distance Matrix API** - Real-world distance calculations
-- **Axios** - HTTP client for API requests
-
-### Development Tools
-
-- **ESLint** - Code quality and consistency
-- **PostCSS** - CSS processing
-- **Turbopack** - Fast development bundler
-
-## 🏗️ Architecture
-
-```
-rerouteai/
-├── app/                    # Next.js App Router
-│   ├── delivery/          # Main delivery simulator page
-│   ├── globals.css        # Global styles and Walmart theme
-│   └── layout.jsx         # Root layout with navigation
-├── components/            # React components
-│   ├── MapComponent.jsx   # Main delivery simulation component
-│   ├── Astar.js          # A* pathfinding algorithm
-│   ├── buildGraph.js     # Warehouse network graph builder
-│   └── StraightDistance.js # Distance calculation utilities
-├── public/               # Static assets
-│   ├── truck-icon.png    # Delivery truck icon
-│   └── warehouse.png     # Warehouse marker icon
-└── README.md            # Project documentation
-```
 
 ## 🎮 How It Works
 
@@ -74,7 +39,7 @@ rerouteai/
 
 ### 2. **AI Route Planning**
 
-- A\* algorithm calculates optimal path through warehouse network
+- The A\* algorithm calculates optimal path through warehouse network
 - Considers distance, warehouse costs, and delivery efficiency
 - Generates visual route with real-time cost analysis
 
@@ -87,13 +52,19 @@ rerouteai/
 ### 4. **Dynamic Rerouting**
 
 - Modify delivery destination during transit
-- AI recalculates optimal route from current position
+- The algorithm recalculates optimal route from current position
 - Cost comparison between original and new routes
 - Accept or reject route changes with penalty analysis
 
+### 5. **Rerouted Delivery**
+
+- The item is now set to reach the new destination with minimal time and cost
+
 ## 🏢 Warehouse Network
 
-The system operates across 14 strategic warehouse locations in Kerala:
+The system currently operates across 14 strategic warehouse locations in Kerala:
+
+It'll soon expand to all the states of India, and across the world!
 
 | District           | Warehouse Name               | Coordinates      | Inventory           |
 | ------------------ | ---------------------------- | ---------------- | ------------------- |
@@ -160,7 +131,7 @@ The system operates across 14 strategic warehouse locations in Kerala:
 
 ```bash
 npm run dev
-   ```
+```
 
 5. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
@@ -172,28 +143,26 @@ npm run build
 npm start
 ```
 
-## 🎨 Design System
+## 🚀 Technology Stack
 
-### Color Palette
+### Frontend
 
-- **Primary Blue**: `#0071ce` (Walmart Blue)
-- **Secondary Blue**: `#005a9e` (Dark Blue)
-- **Accent Yellow**: `#ffc220` (Walmart Yellow)
-- **Success Green**: `#28a745`
-- **Warning Orange**: `#ffc107`
-- **Danger Red**: `#dc3545`
+- **Next.js 15.3.5** - React framework with App Router
+- **Tailwind CSS 4.1.11** - Utility-first CSS framework
+- **Google Maps API** - Interactive mapping and geolocation
 
-### Typography
+### Backend & Algorithms
 
-- **Primary Font**: Inter (Google Fonts)
-- **Monospace**: Geist Mono (for technical data)
+- **A\* Pathfinding Algorithm** - Optimal route calculation
+- **Graph Theory** - Warehouse network modeling
+- **Distance Matrix API** - Real-world distance calculations
+- **Axios** - HTTP client for API requests
 
-### Components
+### Development Tools
 
-- **Cards**: Rounded corners with subtle shadows
-- **Buttons**: Gradient backgrounds with hover effects
-- **Inputs**: Clean borders with focus states
-- **Progress Bars**: Animated with gradient fills
+- **ESLint** - Code quality and consistency
+- **PostCSS** - CSS processing
+- **Turbopack** - Fast development bundler
 
 ## 🔧 API Integration
 
@@ -218,54 +187,8 @@ npm start
 - **Map Rendering**: <1s initial load time
 - **Real-time Updates**: 100ms refresh intervals
 
-## 🧪 Testing
-
-```bash
-# Run linting
-npm run lint
-
-# Type checking (if using TypeScript)
-npm run type-check
-
-# Build verification
-npm run build
-```
-
-## 🤝 Contributing
-
-This project was built for the Walmart Sparkothon. For contributions:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is built for educational and demonstration purposes as part of the Walmart Sparkothon. All rights reserved.
-
-## 🙏 Acknowledgments
-
-- **Walmart Sparkothon** for the opportunity to showcase innovative solutions
-- **Google Maps Platform** for mapping and geolocation services
-- **Next.js Team** for the amazing React framework
-- **Tailwind CSS** for the utility-first styling approach
-
-## 📞 Contact
-
-**Project Team** - [your-email@example.com](mailto:your-email@example.com)
-
-**Project Link**: [https://github.com/yourusername/walmart-express](https://github.com/yourusername/walmart-express)
-
----
-
-<div align="center">
-
 **Built with ❤️ for Walmart Sparkothon**
 
-![Walmart Logo](https://img.shields.io/badge/Walmart-Express-blue?style=for-the-badge&logo=walmart)
-
-_Revolutionizing delivery logistics, one route at a time_
+_By Team InnovateX_
 
 </div>
