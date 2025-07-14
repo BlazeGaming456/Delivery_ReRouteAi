@@ -14,10 +14,10 @@ You can see the Walmart Sparkothon Submission Video at -
 
 ## 📷 Screenshots -
 
-![Screenshot 1](/public/screenshot_1.png)
-![Screenshot 2](/public/screenshot_2.png)
-![Screenshot 3](/public/screenshot_3.png)
-![Screenshot 4](/public/screenshot_4.png)
+<img src="./public/Screenshot_1.png" width="600"/>
+<img src="./public/Screenshot_2.png" width="600"/>
+<img src="./public/Screenshot_3.png" width="600"/>
+<img src="./public/Screenshot_4.png" width="600"/>
 
 ## 🌟 Overview
 
