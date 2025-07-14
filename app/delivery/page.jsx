@@ -14,12 +14,10 @@ export default function DeliveryPage () {
   const [item, setItem] = useState('item1')
   const [showMap, setShowMap] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  // Add delivery progress state
   const [deliveryProgress, setDeliveryProgress] = useState(0)
-  // Add destination state to track current delivery destination
   const [currentDestination, setCurrentDestination] = useState('')
 
-  // Only initialize autocomplete after Google Maps script is loaded
+  //Only initialize autocomplete after Google Maps script is loaded
   const handleScriptLoad = () => {
     if (!window.google || !inputRef.current) return
     const autocomplete = new window.google.maps.places.Autocomplete(
@@ -46,11 +44,12 @@ export default function DeliveryPage () {
     setIsLoading(true)
     setTimeout(() => {
       setShowMap(true)
-      setCurrentDestination(address) // Set initial destination
+      setCurrentDestination(address) //Set initial destination
       setIsLoading(false)
     }, 1000)
   }
 
+  //Item List
   const popularItems = [
     {
       id: 'item1',
@@ -106,6 +105,7 @@ export default function DeliveryPage () {
 
   return (
     <>
+      {/* Loading the Google Maps Script */}
       <Script
         src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places,geometry`}
         strategy='afterInteractive'
@@ -163,6 +163,7 @@ export default function DeliveryPage () {
           </div>
         </div>
 
+        {/* Delivery Section */}
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'>
           {!showMap ? (
             <div className='grid lg:grid-cols-2 gap-12 items-start'>
@@ -325,7 +326,7 @@ export default function DeliveryPage () {
 
               {/* Features & Info */}
               <div className='space-y-6'>
-                {/* How it works */}
+                {/* How It Works Section*/}
                 <div className='card-walmart p-6'>
                   <h3 className='text-xl font-bold text-gray-900 mb-4 flex items-center'>
                     <svg
@@ -459,7 +460,7 @@ export default function DeliveryPage () {
                   </div>
                 </div>
 
-                {/* Stats */}
+                {/* Stats Section */}
                 <div className='card-walmart p-6'>
                   <h3 className='text-xl font-bold text-gray-900 mb-4 flex items-center'>
                     <svg
@@ -511,7 +512,7 @@ export default function DeliveryPage () {
           ) : (
             /* Delivery Simulation View */
             <div className='space-y-6'>
-              {/* Order Summary */}
+              {/* Order Summary and Status */}
               <div className='card-walmart p-6'>
                 <div className='flex items-center justify-between mb-4'>
                   <h2 className='text-2xl font-bold text-gray-900'>

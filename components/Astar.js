@@ -1,3 +1,5 @@
+//Generates the path using the A* algorithm
+
 //unshift - adds element to the front of an array
 //shift - removes the last element from an array
 

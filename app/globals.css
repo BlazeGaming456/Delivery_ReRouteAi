@@ -1,9 +1,7 @@
-/* Google Fonts import must be first */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @import 'tailwindcss';
 
-/* Walmart-inspired custom styles */
 :root {
   --walmart-blue: #0071ce;
   --walmart-blue-dark: #005a9e;
@@ -27,7 +25,7 @@ body {
   min-height: 100vh;
 }
 
-/* Custom scrollbar */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -46,7 +44,7 @@ body {
   background: var(--walmart-blue-dark);
 }
 
-/* Walmart-style buttons */
+/* Buttons */
 .btn-walmart {
   background: linear-gradient(
     135deg,
@@ -85,7 +83,7 @@ body {
   transform: translateY(-2px);
 }
 
-/* Walmart-style cards */
+/* Cards */
 .card-walmart {
   background: white;
   border-radius: 16px;
@@ -99,7 +97,7 @@ body {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
 }
 
-/* Walmart-style inputs */
+/* Inputs */
 .input-walmart {
   border: 2px solid #e9ecef;
   border-radius: 8px;
@@ -115,7 +113,7 @@ body {
   box-shadow: 0 0 0 3px rgba(0, 113, 206, 0.1);
 }
 
-/* Loading animation */
+/* Loading Animation */
 @keyframes pulse {
   0%,
   100% {
@@ -130,7 +128,7 @@ body {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Progress bar */
+/* Progress Bar */
 .progress-walmart {
   background: #e9ecef;
   border-radius: 8px;
@@ -148,7 +146,7 @@ body {
   transition: width 0.3s ease;
 }
 
-/* Status badges */
+/* Status Badges */
 .badge-success {
   background: var(--walmart-success);
   color: white;
@@ -176,14 +174,14 @@ body {
   font-weight: 600;
 }
 
-/* Map container styling */
+/* Map Container Styling */
 .map-container {
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-/* Responsive design */
+/* Window Design */
 @media (max-width: 768px) {
   .card-walmart {
     margin: 8px;

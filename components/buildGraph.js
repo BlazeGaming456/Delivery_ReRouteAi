@@ -1,3 +1,5 @@
+//Building graph from the given points by setting maximum edge distance
+
 import getDistance from "./StraightDistance";
 
 export default function buildGraph(warehouses) {

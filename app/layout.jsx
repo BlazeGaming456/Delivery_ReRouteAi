@@ -26,7 +26,7 @@ export default function RootLayout ({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* Header */}
+        {/* Navbar */}
         <header className='bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50'>
           <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
             <div className='flex justify-between items-center h-16'>
@@ -52,7 +52,7 @@ export default function RootLayout ({ children }) {
                 </div>
               </div>
 
-              {/* Navigation */}
+              {/* Links */}
               <nav className='hidden md:flex items-center space-x-8'>
                 <a
                   href='#'
@@ -74,7 +74,7 @@ export default function RootLayout ({ children }) {
                 </a>
               </nav>
 
-              {/* Right side */}
+              {/* Account Logo */}
               <div className='flex items-center'>
                 <div className='w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center'>
                   <svg
@@ -96,7 +96,7 @@ export default function RootLayout ({ children }) {
           </div>
         </header>
 
-        {/* Main content */}
+        {/* Main Content */}
         <main className='min-h-screen'>{children}</main>
 
         {/* Footer */}
@@ -122,6 +122,7 @@ export default function RootLayout ({ children }) {
                   optimization. Faster, smarter, and more efficient deliveries
                   for the modern world.
                 </p>
+                {/* Project Link */}
                 <div className='flex items-center space-x-1'>
                   <span className='text-gray-400 text-sm font-medium'>
                     Project Link:
@@ -140,6 +141,7 @@ export default function RootLayout ({ children }) {
                   </a>
                 </div>
               </div>
+              {/* Team Members Section */}
               <div>
                 <h3 className='text-sm font-semibold text-gray-400 tracking-wider uppercase mb-4'>
                   Team Members
